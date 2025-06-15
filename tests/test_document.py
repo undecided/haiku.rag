@@ -3,13 +3,15 @@ from datasets import Dataset
 
 from haiku.rag.store.engine import Store
 from haiku.rag.store.models.document import Document
+from haiku.rag.store.repositories.document import DocumentRepository
 
 
 @pytest.mark.asyncio
 async def test_create_document_with_chunks(qa_corpus: Dataset):
-    """Test creating a document with chunks from the qa_corpus."""
-    # Create an in-memory store
+    """Test creating a document with chunks from the qa_corpus using repository."""
+    # Create an in-memory store and repository
     store = Store(":memory:")
+    doc_repo = DocumentRepository(store)
     
     # Get the first document from the corpus
     first_doc = qa_corpus[0]
@@ -22,7 +24,7 @@ async def test_create_document_with_chunks(qa_corpus: Dataset):
     )
     
     # Create the document with chunks in the database
-    created_document = await document.create_with_chunks(store)
+    created_document = await doc_repo.create(document)
     
     # Verify the document was created
     assert created_document.id is not None
@@ -60,30 +62,45 @@ async def test_create_document_with_chunks(qa_corpus: Dataset):
 
 
 @pytest.mark.asyncio
-async def test_search_chunks(qa_corpus: Dataset):
-    """Test vector search functionality."""
-    # Create an in-memory store
+async def test_document_repository_crud(qa_corpus: Dataset):
+    """Test CRUD operations in DocumentRepository."""
+    # Create an in-memory store and repository
     store = Store(":memory:")
+    doc_repo = DocumentRepository(store)
     
     # Get the first document from the corpus
     first_doc = qa_corpus[0]
     document_text = first_doc["document_extracted"]
     
-    # Create and store a document
+    # Create a document
     document = Document(
         content=document_text,
-        metadata={"source": "qa_corpus"}
+        metadata={"source": "test"}
     )
-    await document.create_with_chunks(store)
+    created_document = await doc_repo.create(document)
     
-    # Perform a search
-    search_query = "news"  # Simple query
-    results = await Document.search_chunks(store, search_query, limit=3)
+    # Test get_by_id
+    assert created_document.id is not None
+    retrieved_document = await doc_repo.get_by_id(created_document.id)
+    assert retrieved_document is not None
+    assert retrieved_document.content == document_text
     
-    # Verify search results
-    assert len(results) <= 3
-    assert all(hasattr(chunk, "content") for chunk in results)
-    assert all(hasattr(chunk, "document_id") for chunk in results)
-    assert all(chunk.document_id == document.id for chunk in results)
+    # Test update (should regenerate chunks)
+    retrieved_document.content = "Updated content for testing"
+    updated_document = await doc_repo.update(retrieved_document)
+    assert updated_document.content == "Updated content for testing"
+    
+    # Test list_all
+    all_documents = await doc_repo.list_all()
+    assert len(all_documents) == 1
+    assert all_documents[0].id == created_document.id
+    
+    # Test delete
+    deleted = await doc_repo.delete(created_document.id)
+    assert deleted is True
+    
+    # Verify document is gone
+    retrieved_document = await doc_repo.get_by_id(created_document.id)
+    assert retrieved_document is None
     
     store.close()

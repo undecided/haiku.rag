@@ -1,0 +1,181 @@
+import json
+
+from haiku.rag.store.models.document import Document
+from haiku.rag.store.repositories.base import BaseRepository
+
+
+class DocumentRepository(BaseRepository[Document]):
+    """Repository for Document database operations."""
+
+    def __init__(self, store, chunk_repository=None):
+        super().__init__(store)
+        # Avoid circular import by using late import if not provided
+        if chunk_repository is None:
+            from haiku.rag.store.repositories.chunk import ChunkRepository
+
+            chunk_repository = ChunkRepository(store)
+        self.chunk_repository = chunk_repository
+
+    async def create(self, entity: Document) -> Document:
+        """Create a document with its chunks and embeddings."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+
+        # Start transaction
+        cursor.execute("BEGIN TRANSACTION")
+
+        try:
+            # Insert the document
+            cursor.execute(
+                """
+                INSERT INTO documents (content, metadata, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    entity.content,
+                    json.dumps(entity.metadata),
+                    entity.created_at,
+                    entity.updated_at,
+                ),
+            )
+
+            document_id = cursor.lastrowid
+            assert document_id is not None, "Failed to create document in database"
+            entity.id = document_id
+
+            # Create chunks and embeddings using ChunkRepository
+            await self.chunk_repository.create_chunks_for_document(
+                document_id, entity.content, commit=False
+            )
+
+            cursor.execute("COMMIT")
+            return entity
+
+        except Exception:
+            cursor.execute("ROLLBACK")
+            raise
+
+    async def get_by_id(self, entity_id: int) -> Document | None:
+        """Get a document by its ID."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, content, metadata, created_at, updated_at
+            FROM documents WHERE id = ?
+            """,
+            (entity_id,),
+        )
+
+        row = cursor.fetchone()
+        if row is None:
+            return None
+
+        document_id, content, metadata_json, created_at, updated_at = row
+        metadata = json.loads(metadata_json) if metadata_json else {}
+
+        return Document(
+            id=document_id,
+            content=content,
+            metadata=metadata,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+    async def update(self, entity: Document) -> Document:
+        """Update an existing document and regenerate its chunks and embeddings."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+        if entity.id is None:
+            raise ValueError("Document ID is required for update")
+
+        cursor = self.store._connection.cursor()
+
+        # Start transaction
+        cursor.execute("BEGIN TRANSACTION")
+
+        try:
+            # Update the document
+            cursor.execute(
+                """
+                UPDATE documents
+                SET content = ?, metadata = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    entity.content,
+                    json.dumps(entity.metadata),
+                    entity.updated_at,
+                    entity.id,
+                ),
+            )
+
+            # Delete existing chunks and regenerate using ChunkRepository
+            await self.chunk_repository.delete_by_document_id(entity.id, commit=False)
+            await self.chunk_repository.create_chunks_for_document(
+                entity.id, entity.content, commit=False
+            )
+
+            cursor.execute("COMMIT")
+            return entity
+
+        except Exception:
+            cursor.execute("ROLLBACK")
+            raise
+
+    async def delete(self, entity_id: int) -> bool:
+        """Delete a document and all its associated chunks and embeddings."""
+        # Delete chunks and embeddings first
+        await self.chunk_repository.delete_by_document_id(entity_id)
+
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+        cursor.execute("DELETE FROM documents WHERE id = ?", (entity_id,))
+
+        deleted = cursor.rowcount > 0
+        self.store._connection.commit()
+        return deleted
+
+    async def list_all(
+        self, limit: int | None = None, offset: int | None = None
+    ) -> list[Document]:
+        """List all documents with optional pagination."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+        query = "SELECT id, content, metadata, created_at, updated_at FROM documents ORDER BY created_at DESC"
+        params = []
+
+        if limit is not None:
+            query += " LIMIT ?"
+            params.append(limit)
+
+        if offset is not None:
+            query += " OFFSET ?"
+            params.append(offset)
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        documents = []
+        for row in rows:
+            document_id, content, metadata_json, created_at, updated_at = row
+            metadata = json.loads(metadata_json) if metadata_json else {}
+            documents.append(
+                Document(
+                    id=document_id,
+                    content=content,
+                    metadata=metadata,
+                    created_at=created_at,
+                    updated_at=updated_at,
+                )
+            )
+
+        return documents

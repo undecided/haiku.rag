@@ -1,5 +1,3 @@
-import functools
-
 from ollama import AsyncClient
 
 from haiku.rag.config import Config
@@ -10,7 +8,6 @@ class Embedder(EmbedderBase):
     _model: str = Config.EMBEDDING_MODEL
     _vector_dim: int = 1024
 
-    @functools.lru_cache(maxsize=128)
     async def embed(self, text: str) -> list[float]:
         client = AsyncClient(host=Config.OLLAMA_BASE_URL)
         res = await client.embeddings(model=self._model, prompt=text)
