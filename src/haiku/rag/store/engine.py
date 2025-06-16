@@ -50,6 +50,15 @@ class Store:
             )
         """)
 
+        # Create FTS5 table for full-text search
+        db.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
+                content,
+                content='chunks',
+                content_rowid='id'
+            )
+        """)
+
         # Create indexes for better performance
         db.execute(
             "CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id)"

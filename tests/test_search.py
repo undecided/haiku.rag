@@ -14,7 +14,7 @@ async def test_search_qa_corpus(qa_corpus: Dataset):
     store = Store(":memory:")
     doc_repo = DocumentRepository(store)
     chunk_repo = ChunkRepository(store)
-    num_documents = 10
+    num_documents = 20
     # Load first 10 documents with embeddings (reduced for faster testing)
     documents = []
     for i in range(num_documents):
@@ -40,11 +40,19 @@ async def test_search_qa_corpus(qa_corpus: Dataset):
         target_document, doc_data = documents[i]
         question = doc_data["question"]
 
-        # Search for chunks using the question
-        search_results = await chunk_repo.search_chunks(question, limit=5)
+        # Test vector search
+        vector_results = await chunk_repo.search_chunks(question, limit=5)
+        target_document_ids = {chunk.document_id for chunk, _ in vector_results}
+        assert target_document.id in target_document_ids
 
-        # Check if target document is in results
-        target_document_ids = {chunk.document_id for chunk in search_results}
+        # Test FTS search
+        fts_results = await chunk_repo.search_chunks_fts(question, limit=5)
+        target_document_ids = {chunk.document_id for chunk, _ in fts_results}
+        assert target_document.id in target_document_ids
+
+        # Test hybrid search
+        hybrid_results = await chunk_repo.search_chunks_hybrid(question, limit=5)
+        target_document_ids = {chunk.document_id for chunk, _ in hybrid_results}
         assert target_document.id in target_document_ids
 
     store.close()

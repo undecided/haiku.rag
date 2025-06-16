@@ -1,4 +1,5 @@
 import json
+import re
 
 from haiku.rag.chunker import chunker
 from haiku.rag.embeddings.ollama import Embedder
@@ -38,6 +39,15 @@ class ChunkRepository(BaseRepository[Chunk]):
             VALUES (?, ?)
             """,
             (entity.id, serialized_embedding),
+        )
+
+        # Insert into FTS5 table for full-text search
+        cursor.execute(
+            """
+            INSERT INTO chunks_fts(rowid, content)
+            VALUES (?, ?)
+            """,
+            (entity.id, entity.content),
         )
 
         if commit:
@@ -103,6 +113,16 @@ class ChunkRepository(BaseRepository[Chunk]):
             (serialized_embedding, entity.id),
         )
 
+        # Update FTS5 table
+        cursor.execute(
+            """
+            UPDATE chunks_fts
+            SET content = ?
+            WHERE rowid = ?
+            """,
+            (entity.content, entity.id),
+        )
+
         self.store._connection.commit()
         return entity
 
@@ -113,7 +133,10 @@ class ChunkRepository(BaseRepository[Chunk]):
 
         cursor = self.store._connection.cursor()
 
-        # Delete the embedding first
+        # Delete from FTS5 table first
+        cursor.execute("DELETE FROM chunks_fts WHERE rowid = ?", (entity_id,))
+
+        # Delete the embedding
         cursor.execute("DELETE FROM chunk_embeddings WHERE chunk_id = ?", (entity_id,))
 
         # Delete the chunk
@@ -197,7 +220,9 @@ class ChunkRepository(BaseRepository[Chunk]):
             self.store._connection.commit()
         return deleted_any
 
-    async def search_chunks(self, query: str, limit: int = 5) -> list[Chunk]:
+    async def search_chunks(
+        self, query: str, limit: int = 5
+    ) -> list[tuple[Chunk, float]]:
         """Search for relevant chunks using vector similarity."""
         if self.store._connection is None:
             raise ValueError("Store connection is not available")
@@ -224,16 +249,150 @@ class ChunkRepository(BaseRepository[Chunk]):
         chunks = []
 
         for row in results:
-            chunk_id, document_id, content, metadata_json, _ = row
+            chunk_id, document_id, content, metadata_json, distance = row
             metadata = json.loads(metadata_json) if metadata_json else {}
-            chunks.append(
-                Chunk(
-                    id=chunk_id,
-                    document_id=document_id,
-                    content=content,
-                    metadata=metadata,
-                )
+            chunk = Chunk(
+                id=chunk_id,
+                document_id=document_id,
+                content=content,
+                metadata=metadata,
             )
+
+            similarity_score = 1.0 / (1.0 + distance)
+            chunks.append((chunk, similarity_score))
+
+        return chunks
+
+    async def search_chunks_fts(
+        self, query: str, limit: int = 5
+    ) -> list[tuple[Chunk, float]]:
+        """Search for chunks using FTS5 full-text search."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+
+        # Clean the query for FTS5 - extract keywords for better matching
+        # Remove special characters and split into words
+        words = re.findall(r"\b\w+\b", query.lower())
+        # Join with OR to find chunks containing any of the keywords
+        fts_query = " OR ".join(words) if words else query
+
+        # Search using FTS5
+        cursor.execute(
+            """
+            SELECT c.id, c.document_id, c.content, c.metadata, rank
+            FROM chunks_fts
+            JOIN chunks c ON c.id = chunks_fts.rowid
+            WHERE chunks_fts MATCH ?
+            ORDER BY rank
+            LIMIT ?
+            """,
+            (fts_query, limit),
+        )
+
+        results = cursor.fetchall()
+        chunks = []
+
+        for row in results:
+            chunk_id, document_id, content, metadata_json, rank = row
+            metadata = json.loads(metadata_json) if metadata_json else {}
+            chunk = Chunk(
+                id=chunk_id,
+                document_id=document_id,
+                content=content,
+                metadata=metadata,
+            )
+            # Convert rank to a score - FTS5 rank is negative BM25 score
+            # More negative = better match, so we negate it to get positive scores
+            fts_score = -rank
+            chunks.append((chunk, fts_score))
+
+        return chunks
+
+    async def search_chunks_hybrid(
+        self, query: str, limit: int = 5, k: int = 60
+    ) -> list[tuple[Chunk, float]]:
+        """Hybrid search using Reciprocal Rank Fusion (RRF) combining vector similarity and FTS5 full-text search."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+
+        # Generate embedding for the query
+        query_embedding = await self.embedder.embed(query)
+        serialized_query_embedding = self.store.serialize_embedding(query_embedding)
+
+        # Clean the query for FTS5 - extract keywords for better matching
+        # Remove special characters and split into words
+        words = re.findall(r"\b\w+\b", query.lower())
+        # Join with OR to find chunks containing any of the keywords
+        fts_query = " OR ".join(words) if words else query
+
+        # Perform hybrid search using RRF (Reciprocal Rank Fusion)
+        cursor.execute(
+            """
+            WITH vector_search AS (
+                SELECT
+                    c.id,
+                    c.document_id,
+                    c.content,
+                    c.metadata,
+                    ROW_NUMBER() OVER (ORDER BY ce.distance) as vector_rank
+                FROM chunk_embeddings ce
+                JOIN chunks c ON c.id = ce.chunk_id
+                WHERE ce.embedding MATCH ? AND k = ?
+                ORDER BY ce.distance
+            ),
+            fts_search AS (
+                SELECT
+                    c.id,
+                    c.document_id,
+                    c.content,
+                    c.metadata,
+                    ROW_NUMBER() OVER (ORDER BY chunks_fts.rank) as fts_rank
+                FROM chunks_fts
+                JOIN chunks c ON c.id = chunks_fts.rowid
+                WHERE chunks_fts MATCH ?
+                ORDER BY chunks_fts.rank
+            ),
+            all_chunks AS (
+                SELECT id, document_id, content, metadata FROM vector_search
+                UNION
+                SELECT id, document_id, content, metadata FROM fts_search
+            ),
+            rrf_scores AS (
+                SELECT
+                    a.id,
+                    a.document_id,
+                    a.content,
+                    a.metadata,
+                    COALESCE(1.0 / (? + v.vector_rank), 0) + COALESCE(1.0 / (? + f.fts_rank), 0) as rrf_score
+                FROM all_chunks a
+                LEFT JOIN vector_search v ON a.id = v.id
+                LEFT JOIN fts_search f ON a.id = f.id
+            )
+            SELECT id, document_id, content, metadata, rrf_score
+            FROM rrf_scores
+            ORDER BY rrf_score DESC
+            LIMIT ?
+            """,
+            (serialized_query_embedding, limit * 3, fts_query, k, k, limit),
+        )
+
+        results = cursor.fetchall()
+        chunks = []
+
+        for row in results:
+            chunk_id, document_id, content, metadata_json, rrf_score = row
+            metadata = json.loads(metadata_json) if metadata_json else {}
+            chunk = Chunk(
+                id=chunk_id,
+                document_id=document_id,
+                content=content,
+                metadata=metadata,
+            )
+            chunks.append((chunk, rrf_score))
 
         return chunks
 

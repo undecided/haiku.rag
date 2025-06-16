@@ -33,7 +33,7 @@ async def test_chunk_repository_operations(qa_corpus: Dataset):
     # Test chunk search
     results = await chunk_repo.search_chunks("election", limit=2)
     assert len(results) <= 2
-    assert all(hasattr(chunk, "content") for chunk in results)
+    assert all(hasattr(chunk, "content") for chunk, _ in results)
 
     # Test deleting chunks by document ID
     deleted = await chunk_repo.delete_by_document_id(created_document.id)
