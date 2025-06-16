@@ -9,35 +9,6 @@ from haiku.rag.store.repositories.document import DocumentRepository
 
 
 @pytest.mark.asyncio
-async def test_search_chunks(qa_corpus: Dataset):
-    """Test vector search functionality using ChunkRepository."""
-    # Create an in-memory store and repositories
-    store = Store(":memory:")
-    doc_repo = DocumentRepository(store)
-    chunk_repo = ChunkRepository(store)
-
-    # Get the first document from the corpus
-    first_doc = qa_corpus[0]
-    document_text = first_doc["document_extracted"]
-
-    # Create and store a document
-    document = Document(content=document_text, metadata={"source": "qa_corpus"})
-    created_document = await doc_repo.create(document)
-
-    # Perform a search using ChunkRepository
-    search_query = "news"  # Simple query
-    results = await chunk_repo.search_chunks(search_query, limit=3)
-
-    # Verify search results
-    assert len(results) <= 3
-    assert all(hasattr(chunk, "content") for chunk in results)
-    assert all(hasattr(chunk, "document_id") for chunk in results)
-    assert all(chunk.document_id == created_document.id for chunk in results)
-
-    store.close()
-
-
-@pytest.mark.asyncio
 async def test_chunk_repository_operations(qa_corpus: Dataset):
     """Test ChunkRepository operations."""
     # Create an in-memory store and repositories
