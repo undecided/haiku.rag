@@ -1,3 +1,5 @@
+import hashlib
+import mimetypes
 import tempfile
 from pathlib import Path
 from typing import Literal
@@ -11,7 +13,7 @@ from haiku.rag.store.models.document import Document
 from haiku.rag.store.repositories.document import DocumentRepository
 
 
-class RAGClient:
+class HaikuRAG:
     """High-level haiku-rag client."""
 
     def __init__(self, db_path: Path | Literal[":memory:"]):
@@ -31,16 +33,21 @@ class RAGClient:
         return await self.document_repository.create(document)
 
     async def create_document_from_source(
-        self, source: str | Path, metadata: dict | None = None
+        self, source: str | Path, metadata: dict = {}
     ) -> Document:
-        """Create a document from a file path or URL.
+        """Create or update a document from a file path or URL.
+
+        Checks if a document with the same URI already exists:
+        - If MD5 is unchanged, returns existing document
+        - If MD5 changed, updates the document
+        - If no document exists, creates a new one
 
         Args:
             source: File path (as string or Path) or URL to parse
             metadata: Optional metadata dictionary
 
         Returns:
-            Created Document instance
+            Document instance (created, updated, or existing)
 
         Raises:
             ValueError: If the file/URL cannot be parsed or doesn't exist
@@ -51,7 +58,7 @@ class RAGClient:
         source_str = str(source)
         parsed_url = urlparse(source_str)
         if parsed_url.scheme in ("http", "https"):
-            return await self._create_document_from_url(source_str, metadata)
+            return await self._create_or_update_document_from_url(source_str, metadata)
 
         # Handle as file path
         source_path = Path(source) if isinstance(source, str) else source
@@ -61,24 +68,52 @@ class RAGClient:
         if not source_path.exists():
             raise ValueError(f"File does not exist: {source_path}")
 
+        uri = str(source_path.resolve())
+        md5_hash = hashlib.md5(source_path.read_bytes()).hexdigest()
+
+        # Check if document already exists
+        existing_doc = await self.get_document_by_uri(uri)
+        if existing_doc and existing_doc.metadata.get("md5") == md5_hash:
+            # MD5 unchanged, return existing document
+            return existing_doc
+
         content = FileReader.parse_file(source_path)
 
-        # Create the document
-        return await self.create_document(
-            content=content, uri=str(source_path.resolve()), metadata=metadata
-        )
+        # Get content type from file extension
+        content_type, _ = mimetypes.guess_type(str(source_path))
+        if not content_type:
+            content_type = "application/octet-stream"
 
-    async def _create_document_from_url(
-        self, url: str, metadata: dict | None = None
+        # Merge metadata with contentType and md5
+        metadata.update({"contentType": content_type, "md5": md5_hash})
+
+        if existing_doc:
+            # Update existing document
+            existing_doc.content = content
+            existing_doc.metadata = metadata
+            return await self.update_document(existing_doc)
+        else:
+            # Create new document
+            return await self.create_document(
+                content=content, uri=uri, metadata=metadata
+            )
+
+    async def _create_or_update_document_from_url(
+        self, url: str, metadata: dict = {}
     ) -> Document:
-        """Create a document from a URL by downloading and parsing the content.
+        """Create or update a document from a URL by downloading and parsing the content.
+
+        Checks if a document with the same URI already exists:
+        - If MD5 is unchanged, returns existing document
+        - If MD5 changed, updates the document
+        - If no document exists, creates a new one
 
         Args:
             url: URL to download and parse
             metadata: Optional metadata dictionary
 
         Returns:
-            Created Document instance
+            Document instance (created, updated, or existing)
 
         Raises:
             ValueError: If the content cannot be parsed
@@ -88,10 +123,16 @@ class RAGClient:
             response = await client.get(url)
             response.raise_for_status()
 
+            md5_hash = hashlib.md5(response.content).hexdigest()
+
+            # Check if document already exists
+            existing_doc = await self.get_document_by_uri(url)
+            if existing_doc and existing_doc.metadata.get("md5") == md5_hash:
+                # MD5 unchanged, return existing document
+                return existing_doc
+
             # Get content type to determine file extension
             content_type = response.headers.get("content-type", "").lower()
-
-            # Try to determine file extension from content type or URL
             file_extension = self._get_extension_from_content_type_or_url(
                 url, content_type
             )
@@ -112,10 +153,17 @@ class RAGClient:
                 # Parse the content using FileReader
                 content = FileReader.parse_file(temp_path)
 
-                # Create the document with the original URL as URI
-                return await self.create_document(
-                    content=content, uri=url, metadata=metadata
-                )
+                # Merge metadata with contentType and md5
+                metadata.update({"contentType": content_type, "md5": md5_hash})
+
+                if existing_doc:
+                    existing_doc.content = content
+                    existing_doc.metadata = metadata
+                    return await self.update_document(existing_doc)
+                else:
+                    return await self.create_document(
+                        content=content, uri=url, metadata=metadata
+                    )
             finally:
                 # Clean up temporary file
                 temp_path.unlink(missing_ok=True)

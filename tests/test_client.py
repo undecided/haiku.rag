@@ -6,14 +6,14 @@ import httpx
 import pytest
 from datasets import Dataset
 
-from haiku.rag.client import RAGClient
+from haiku.rag.client import HaikuRAG
 
 
 @pytest.mark.asyncio
 async def test_client_document_crud(qa_corpus: Dataset):
-    """Test RAGClient CRUD operations for documents."""
+    """Test HaikuRAG CRUD operations for documents."""
     # Create client with in-memory database
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Get test data
     first_doc = qa_corpus[0]
@@ -82,7 +82,7 @@ async def test_client_document_crud(qa_corpus: Dataset):
 @pytest.mark.asyncio
 async def test_client_create_document_from_source():
     """Test creating a document from a file source."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Create a temporary text file
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -100,6 +100,9 @@ async def test_client_create_document_from_source():
         assert doc.content == test_content
         assert doc.uri == str(temp_path.resolve())
         assert doc.metadata["source_type"] == "file"
+        assert "contentType" in doc.metadata
+        assert "md5" in doc.metadata
+        assert doc.metadata["contentType"] == "text/plain"
 
         # Test create_document_from_source with string path
         doc2 = await client.create_document_from_source(source=str(temp_path))
@@ -107,6 +110,8 @@ async def test_client_create_document_from_source():
         assert doc2.id is not None
         assert doc2.content == test_content
         assert doc2.uri == str(temp_path.resolve())
+        assert "contentType" in doc2.metadata
+        assert "md5" in doc2.metadata
 
     finally:
         # Clean up
@@ -117,7 +122,7 @@ async def test_client_create_document_from_source():
 @pytest.mark.asyncio
 async def test_client_create_document_from_source_unsupported():
     """Test creating a document from an unsupported file type."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Create a temporary file with unsupported extension
     with tempfile.NamedTemporaryFile(
@@ -139,7 +144,7 @@ async def test_client_create_document_from_source_unsupported():
 @pytest.mark.asyncio
 async def test_client_create_document_from_source_nonexistent():
     """Test creating a document from a non-existent file."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     non_existent_path = Path("/non/existent/file.txt")
 
@@ -153,7 +158,7 @@ async def test_client_create_document_from_source_nonexistent():
 @pytest.mark.asyncio
 async def test_client_create_document_from_url():
     """Test creating a document from a URL."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Mock the HTTP response
     mock_response = AsyncMock()
@@ -171,6 +176,9 @@ async def test_client_create_document_from_url():
         assert "test content" in doc.content
         assert doc.uri == "https://example.com/test.html"
         assert doc.metadata["source_type"] == "web"
+        assert "contentType" in doc.metadata
+        assert "md5" in doc.metadata
+        assert doc.metadata["contentType"] == "text/html"
 
     client.close()
 
@@ -178,7 +186,7 @@ async def test_client_create_document_from_url():
 @pytest.mark.asyncio
 async def test_client_create_document_from_url_with_different_content_types():
     """Test creating documents from URLs with different content types."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Test JSON content
     mock_json_response = AsyncMock()
@@ -196,6 +204,9 @@ async def test_client_create_document_from_url_with_different_content_types():
         assert doc.id is not None
         assert "Test JSON" in doc.content
         assert doc.uri == "https://api.example.com/data.json"
+        assert "contentType" in doc.metadata
+        assert "md5" in doc.metadata
+        assert doc.metadata["contentType"] == "application/json"
 
     # Test plain text content
     mock_text_response = AsyncMock()
@@ -209,6 +220,9 @@ async def test_client_create_document_from_url_with_different_content_types():
         assert doc.id is not None
         assert doc.content == "This is plain text content from a URL."
         assert doc.uri == "https://example.com/readme.txt"
+        assert "contentType" in doc.metadata
+        assert "md5" in doc.metadata
+        assert doc.metadata["contentType"] == "text/plain"
 
     client.close()
 
@@ -216,7 +230,7 @@ async def test_client_create_document_from_url_with_different_content_types():
 @pytest.mark.asyncio
 async def test_client_create_document_from_url_unsupported_content():
     """Test creating a document from URL with unsupported content type."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Mock response with unsupported content type
     mock_response = AsyncMock()
@@ -234,7 +248,7 @@ async def test_client_create_document_from_url_unsupported_content():
 @pytest.mark.asyncio
 async def test_client_create_document_from_url_http_error():
     """Test handling HTTP errors when creating document from URL."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     with patch("httpx.AsyncClient.get") as mock_get:
         mock_get.side_effect = httpx.HTTPStatusError(
@@ -254,7 +268,7 @@ async def test_client_create_document_from_url_http_error():
 @pytest.mark.asyncio
 async def test_get_extension_from_content_type_or_url():
     """Test the helper method for determining file extensions."""
-    client = RAGClient(":memory:")
+    client = HaikuRAG(":memory:")
 
     # Test content type mappings
     assert client._get_extension_from_content_type_or_url("", "text/html") == ".html"
@@ -290,5 +304,125 @@ async def test_get_extension_from_content_type_or_url():
         )
         == ".pdf"
     )
+
+    client.close()
+
+
+@pytest.mark.asyncio
+async def test_client_metadata_content_type_and_md5():
+    """Test that contentType and md5 metadata are correctly set."""
+    import hashlib
+
+    client = HaikuRAG(":memory:")
+
+    # Create a temporary file with known content
+    test_content = "Test content for MD5 calculation."
+    expected_md5 = hashlib.md5(test_content.encode()).hexdigest()
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write(test_content)
+        temp_path = Path(f.name)
+
+    try:
+        doc = await client.create_document_from_source(temp_path)
+
+        assert doc.metadata["contentType"] == "text/plain"
+        assert doc.metadata["md5"] == expected_md5
+
+        mock_response = AsyncMock()
+        mock_response.content = test_content.encode()
+        mock_response.headers = {"content-type": "text/plain"}
+        mock_response.raise_for_status = AsyncMock()
+
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            url_doc = await client.create_document_from_source(
+                "https://example.com/test.txt"
+            )
+
+            assert url_doc.metadata["contentType"] == "text/plain"
+            assert url_doc.metadata["md5"] == expected_md5
+
+    finally:
+        temp_path.unlink()
+        client.close()
+
+
+@pytest.mark.asyncio
+async def test_client_create_update_no_op_behavior():
+    """Test create/update/no-op behavior based on MD5 changes."""
+    client = HaikuRAG(":memory:")
+
+    # Create a temporary file
+    test_content = "Original content for testing."
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write(test_content)
+        temp_path = Path(f.name)
+
+    try:
+        # First call - should create new document
+        doc1 = await client.create_document_from_source(temp_path)
+        assert doc1.id is not None
+        assert doc1.content == test_content
+        original_id = doc1.id
+
+        # Second call with same content - should return existing document (no-op)
+        doc2 = await client.create_document_from_source(temp_path)
+        assert doc2.id == original_id  # Same document
+        assert doc2.content == test_content
+
+        # Modify file content
+        updated_content = "Updated content for testing."
+        temp_path.write_text(updated_content)
+
+        # Third call with changed content - should update existing document
+        doc3 = await client.create_document_from_source(temp_path)
+        assert doc3.id == original_id  # Same document ID
+        assert doc3.content == updated_content  # Updated content
+
+        # Verify the document was actually updated in database
+        retrieved_doc = await client.get_document_by_id(original_id)
+        assert retrieved_doc is not None
+        assert retrieved_doc.content == updated_content
+
+    finally:
+        temp_path.unlink()
+        client.close()
+
+
+@pytest.mark.asyncio
+async def test_client_url_create_update_no_op_behavior():
+    """Test create/update/no-op behavior for URLs based on MD5 changes."""
+    client = HaikuRAG(":memory:")
+
+    url = "https://example.com/test.txt"
+    original_content = b"Original URL content"
+    updated_content = b"Updated URL content"
+
+    # Mock first response
+    mock_response1 = AsyncMock()
+    mock_response1.content = original_content
+    mock_response1.headers = {"content-type": "text/plain"}
+    mock_response1.raise_for_status = AsyncMock()
+
+    with patch("httpx.AsyncClient.get", return_value=mock_response1):
+        # First call - should create new document
+        doc1 = await client.create_document_from_source(url)
+        assert doc1.id is not None
+        original_id = doc1.id
+
+        # Second call with same content - should return existing document (no-op)
+        doc2 = await client.create_document_from_source(url)
+        assert doc2.id == original_id  # Same document
+
+    mock_response2 = AsyncMock()
+    mock_response2.content = updated_content
+    mock_response2.headers = {"content-type": "text/plain"}
+    mock_response2.raise_for_status = AsyncMock()
+
+    with patch("httpx.AsyncClient.get", return_value=mock_response2):
+        # Third call with changed content - should update existing document
+        doc3 = await client.create_document_from_source(url)
+        assert doc3.id == original_id  # Same document ID
+        assert doc3.content == updated_content.decode()  # Updated content
 
     client.close()
