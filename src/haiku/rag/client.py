@@ -24,6 +24,15 @@ class HaikuRAG:
         self.document_repository = DocumentRepository(self.store)
         self.chunk_repository = ChunkRepository(self.store)
 
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        self.close()
+        return False
+
     async def create_document(
         self, content: str, uri: str | None = None, metadata: dict | None = None
     ) -> Document:

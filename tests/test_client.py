@@ -472,3 +472,28 @@ async def test_client_search():
     assert len(limited_results) <= 1
 
     client.close()
+
+
+@pytest.mark.asyncio
+async def test_client_async_context_manager():
+    """Test HaikuRAG as async context manager."""
+
+    # Test that context manager works and auto-closes
+    async with HaikuRAG(":memory:") as client:
+        # Create a document to ensure the client works
+        doc = await client.create_document(
+            content="Test content for context manager",
+            uri="test://context",
+            metadata={"test": "context_manager"},
+        )
+
+        assert doc.id is not None
+        assert doc.content == "Test content for context manager"
+
+        # Test search works within context
+        results = await client.search("Test content", limit=1)
+        assert len(results) > 0
+
+    # Context manager should have automatically closed the connection
+    # We can't easily test that the connection is closed without accessing internals,
+    # but the test passing means the context manager methods work correctly

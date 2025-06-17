@@ -34,48 +34,50 @@ source .venv/bin/activate
 from pathlib import Path
 from haiku.rag.client import HaikuRAG
 
-# Initialize client with database path
-client = HaikuRAG("path/to/database.db")
-# Or use in-memory database for testing
+# Use as async context manager (recommended)
+async with HaikuRAG("path/to/database.db") as client:
+    # Create document from text
+    doc = await client.create_document(
+        content="Your document content here",
+        uri="doc://example",
+        metadata={"source": "manual", "topic": "example"}
+    )
+
+    # Create document from file (auto-parses content)
+    doc = await client.create_document_from_source("path/to/document.pdf")
+
+    # Create document from URL
+    doc = await client.create_document_from_source("https://example.com/article.html")
+
+    # Retrieve documents
+    doc = await client.get_document_by_id(1)
+    doc = await client.get_document_by_uri("file:///path/to/document.pdf")
+
+    # List all documents with pagination
+    docs = await client.list_documents(limit=10, offset=0)
+
+    # Update document content
+    doc.content = "Updated content"
+    await client.update_document(doc)
+
+    # Delete document
+    await client.delete_document(doc.id)
+
+    # Search documents using hybrid search (vector + full-text)
+    results = await client.search("machine learning algorithms", limit=5)
+    for chunk, score in results:
+        print(f"Score: {score:.3f}")
+        print(f"Content: {chunk.content}")
+        print(f"Document ID: {chunk.document_id}")
+        print("---")
+
+
+# Or use without the context manager.
 client = HaikuRAG(":memory:")
-
-# Create document from text
-doc = await client.create_document(
-    content="Your document content here",
-    uri="doc://example",
-    metadata={"source": "manual", "topic": "example"}
-)
-
-# Create document from file (auto-parses content)
-doc = await client.create_document_from_source("path/to/document.pdf")
-
-# Create document from URL
-doc = await client.create_document_from_source("https://example.com/article.html")
-
-# Retrieve documents
-doc = await client.get_document_by_id(1)
-doc = await client.get_document_by_uri("file:///path/to/document.pdf")
-
-# List all documents with pagination
-docs = await client.list_documents(limit=10, offset=0)
-
-# Update document content
-doc.content = "Updated content"
-await client.update_document(doc)
-
-# Delete document
-await client.delete_document(doc.id)
-
-# Search documents using hybrid search (vector + full-text)
-results = await client.search("machine learning algorithms", limit=5)
-for chunk, score in results:
-    print(f"Score: {score:.3f}")
-    print(f"Content: {chunk.content}")
-    print(f"Document ID: {chunk.document_id}")
-    print("---")
-
-# Clean up
-client.close()
+try:
+    # ... operations ...
+finally:
+    client.close()
 ```
 
 ## Search Functionality
@@ -87,21 +89,22 @@ client.close()
 4. **Chunked Results**: Returns relevant document chunks with scores
 
 ```python
-# Basic search
-results = await client.search("your query here")
+async with HaikuRAG("database.db") as client:
+    # Basic search
+    results = await client.search("your query here")
 
-# Search with custom parameters
-results = await client.search(
-    query="machine learning",
-    limit=10,  # Maximum results to return
-    k=60       # RRF parameter for reciprocal rank fusion
-)
+    # Search with custom parameters
+    results = await client.search(
+        query="machine learning",
+        limit=10,  # Maximum results to return
+        k=60       # RRF parameter for reciprocal rank fusion
+    )
 
-# Process results
-for chunk, relevance_score in results:
-    print(f"Relevance: {relevance_score:.3f}")
-    print(f"Content: {chunk.content}")
-    print(f"From document: {chunk.document_id}")
+    # Process results
+    for chunk, relevance_score in results:
+        print(f"Relevance: {relevance_score:.3f}")
+        print(f"Content: {chunk.content}")
+        print(f"From document: {chunk.document_id}")
 ```
 
 ## Smart Document Updates
@@ -109,18 +112,19 @@ for chunk, relevance_score in results:
 The system automatically tracks file changes using MD5 hashes:
 
 ```python
-# First call - creates new document
-doc1 = await client.create_document_from_source("document.txt")
+async with HaikuRAG("database.db") as client:
+    # First call - creates new document
+    doc1 = await client.create_document_from_source("document.txt")
 
-# Second call - no changes, returns existing document (no processing)
-doc2 = await client.create_document_from_source("document.txt")
-assert doc1.id == doc2.id
+    # Second call - no changes, returns existing document (no processing)
+    doc2 = await client.create_document_from_source("document.txt")
+    assert doc1.id == doc2.id
 
-# After file modification - automatically updates existing document
-# File content changed...
-doc3 = await client.create_document_from_source("document.txt")
-assert doc1.id == doc3.id  # Same document
-assert doc3.content != doc1.content  # Updated content
+    # After file modification - automatically updates existing document
+    # File content changed...
+    doc3 = await client.create_document_from_source("document.txt")
+    assert doc1.id == doc3.id  # Same document
+    assert doc3.content != doc1.content  # Updated content
 ```
 
 ## Supported File Formats
