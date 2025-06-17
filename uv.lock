@@ -460,6 +460,7 @@ name = "haiku-rag"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "markitdown", extra = ["audio-transcription", "docx", "pdf", "pptx", "xlsx"] },
     { name = "ollama" },
     { name = "pydantic" },
@@ -482,6 +483,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "markitdown", extras = ["audio-transcription", "docx", "pdf", "pptx", "xlsx"], specifier = ">=0.1.2" },
     { name = "ollama", specifier = ">=0.5.1" },
     { name = "pydantic", specifier = ">=2.11.7" },
