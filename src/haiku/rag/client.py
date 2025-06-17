@@ -9,7 +9,9 @@ import httpx
 
 from haiku.rag.reader import FileReader
 from haiku.rag.store.engine import Store
+from haiku.rag.store.models.chunk import Chunk
 from haiku.rag.store.models.document import Document
+from haiku.rag.store.repositories.chunk import ChunkRepository
 from haiku.rag.store.repositories.document import DocumentRepository
 
 
@@ -20,6 +22,7 @@ class HaikuRAG:
         """Initialize the RAG client with a database path."""
         self.store = Store(db_path)
         self.document_repository = DocumentRepository(self.store)
+        self.chunk_repository = ChunkRepository(self.store)
 
     async def create_document(
         self, content: str, uri: str | None = None, metadata: dict | None = None
@@ -220,6 +223,21 @@ class HaikuRAG:
     ) -> list[Document]:
         """List all documents with optional pagination."""
         return await self.document_repository.list_all(limit=limit, offset=offset)
+
+    async def search(
+        self, query: str, limit: int = 5, k: int = 60
+    ) -> list[tuple[Chunk, float]]:
+        """Search for relevant chunks using hybrid search (vector similarity + full-text search).
+
+        Args:
+            query: The search query string
+            limit: Maximum number of results to return
+            k: Parameter for Reciprocal Rank Fusion (default: 60)
+
+        Returns:
+            List of (chunk, score) tuples ordered by relevance
+        """
+        return await self.chunk_repository.search_chunks_hybrid(query, limit, k)
 
     def close(self):
         """Close the underlying store connection."""

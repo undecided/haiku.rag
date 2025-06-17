@@ -66,8 +66,42 @@ await client.update_document(doc)
 # Delete document
 await client.delete_document(doc.id)
 
+# Search documents using hybrid search (vector + full-text)
+results = await client.search("machine learning algorithms", limit=5)
+for chunk, score in results:
+    print(f"Score: {score:.3f}")
+    print(f"Content: {chunk.content}")
+    print(f"Document ID: {chunk.document_id}")
+    print("---")
+
 # Clean up
 client.close()
+```
+
+## Search Functionality
+
+`haiku.rag` provides hybrid search combining vector similarity and full-text search:
+1. **Vector Search**: Uses embeddings to find semantically similar content
+2. **Full-text Search**: Uses SQLite FTS5 for exact keyword matching
+3. **Hybrid Ranking**: Combines both using Reciprocal Rank Fusion (RRF)
+4. **Chunked Results**: Returns relevant document chunks with scores
+
+```python
+# Basic search
+results = await client.search("your query here")
+
+# Search with custom parameters
+results = await client.search(
+    query="machine learning",
+    limit=10,  # Maximum results to return
+    k=60       # RRF parameter for reciprocal rank fusion
+)
+
+# Process results
+for chunk, relevance_score in results:
+    print(f"Relevance: {relevance_score:.3f}")
+    print(f"Content: {chunk.content}")
+    print(f"From document: {chunk.document_id}")
 ```
 
 ## Smart Document Updates
@@ -119,6 +153,5 @@ print(doc.metadata)
 2. Create a feature branch
 3. Add tests for new functionality
 4. Ensure all tests pass: `pytest`
-5. Run type checking: `pyright`
-6. Run linting: `ruff check`
-7. Submit a pull request
+5. Run type checking & linting with `pyright` & `ruff check`
+6. Submit a pull request

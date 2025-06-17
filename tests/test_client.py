@@ -426,3 +426,49 @@ async def test_client_url_create_update_no_op_behavior():
         assert doc3.content == updated_content.decode()  # Updated content
 
     client.close()
+
+
+@pytest.mark.asyncio
+async def test_client_search():
+    """Test HaikuRAG search functionality."""
+    client = HaikuRAG(":memory:")
+
+    # Add multiple documents to search from
+    doc1_text = "Python is a high-level programming language known for its simplicity and readability."
+    doc2_text = "Machine learning algorithms help computers learn patterns from data without explicit programming."
+    doc3_text = "Data science combines statistics, programming, and domain expertise to extract insights."
+
+    # Create documents
+    doc1 = await client.create_document(
+        content=doc1_text, uri="doc1.txt", metadata={"topic": "python"}
+    )
+    doc2 = await client.create_document(
+        content=doc2_text, uri="doc2.txt", metadata={"topic": "ml"}
+    )
+    await client.create_document(
+        content=doc3_text, uri="doc3.txt", metadata={"topic": "data_science"}
+    )
+
+    # Test search with keyword that should match doc1
+    results = await client.search("Python programming", limit=3)
+
+    assert len(results) > 0
+    assert all(len(result) == 2 for result in results)
+
+    # Verify first result is from the Python document (doc1)
+    first_chunk, _ = results[0]
+    assert first_chunk.document_id == doc1.id
+
+    # Test search with different query
+    ml_results = await client.search("machine learning data", limit=2)
+    assert len(ml_results) > 0
+
+    # Verify first result is from the machine learning document (doc2)
+    first_ml_chunk, _ = ml_results[0]
+    assert first_ml_chunk.document_id == doc2.id
+
+    # Test search with limit parameter
+    limited_results = await client.search("programming", limit=1)
+    assert len(limited_results) <= 1
+
+    client.close()
