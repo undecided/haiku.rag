@@ -30,11 +30,12 @@ class DocumentRepository(BaseRepository[Document]):
             # Insert the document
             cursor.execute(
                 """
-                INSERT INTO documents (content, metadata, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO documents (content, uri, metadata, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     entity.content,
+                    entity.uri,
                     json.dumps(entity.metadata),
                     entity.created_at,
                     entity.updated_at,
@@ -65,7 +66,7 @@ class DocumentRepository(BaseRepository[Document]):
         cursor = self.store._connection.cursor()
         cursor.execute(
             """
-            SELECT id, content, metadata, created_at, updated_at
+            SELECT id, content, uri, metadata, created_at, updated_at
             FROM documents WHERE id = ?
             """,
             (entity_id,),
@@ -75,12 +76,43 @@ class DocumentRepository(BaseRepository[Document]):
         if row is None:
             return None
 
-        document_id, content, metadata_json, created_at, updated_at = row
+        document_id, content, uri, metadata_json, created_at, updated_at = row
         metadata = json.loads(metadata_json) if metadata_json else {}
 
         return Document(
             id=document_id,
             content=content,
+            uri=uri,
+            metadata=metadata,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+    async def get_by_uri(self, uri: str) -> Document | None:
+        """Get a document by its URI."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, content, uri, metadata, created_at, updated_at
+            FROM documents WHERE uri = ?
+            """,
+            (uri,),
+        )
+
+        row = cursor.fetchone()
+        if row is None:
+            return None
+
+        document_id, content, uri, metadata_json, created_at, updated_at = row
+        metadata = json.loads(metadata_json) if metadata_json else {}
+
+        return Document(
+            id=document_id,
+            content=content,
+            uri=uri,
             metadata=metadata,
             created_at=created_at,
             updated_at=updated_at,
@@ -103,11 +135,12 @@ class DocumentRepository(BaseRepository[Document]):
             cursor.execute(
                 """
                 UPDATE documents
-                SET content = ?, metadata = ?, updated_at = ?
+                SET content = ?, uri = ?, metadata = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
                     entity.content,
+                    entity.uri,
                     json.dumps(entity.metadata),
                     entity.updated_at,
                     entity.id,
@@ -150,7 +183,7 @@ class DocumentRepository(BaseRepository[Document]):
             raise ValueError("Store connection is not available")
 
         cursor = self.store._connection.cursor()
-        query = "SELECT id, content, metadata, created_at, updated_at FROM documents ORDER BY created_at DESC"
+        query = "SELECT id, content, uri, metadata, created_at, updated_at FROM documents ORDER BY created_at DESC"
         params = []
 
         if limit is not None:
@@ -166,12 +199,13 @@ class DocumentRepository(BaseRepository[Document]):
 
         documents = []
         for row in rows:
-            document_id, content, metadata_json, created_at, updated_at = row
+            document_id, content, uri, metadata_json, created_at, updated_at = row
             metadata = json.loads(metadata_json) if metadata_json else {}
             documents.append(
                 Document(
                     id=document_id,
                     content=content,
+                    uri=uri,
                     metadata=metadata,
                     created_at=created_at,
                     updated_at=updated_at,
