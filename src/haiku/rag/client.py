@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from haiku.rag.config import Config
 from haiku.rag.reader import FileReader
 from haiku.rag.store.engine import Store
 from haiku.rag.store.models.chunk import Chunk
@@ -18,8 +19,15 @@ from haiku.rag.store.repositories.document import DocumentRepository
 class HaikuRAG:
     """High-level haiku-rag client."""
 
-    def __init__(self, db_path: Path | Literal[":memory:"]):
+    def __init__(
+        self,
+        db_path: Path | Literal[":memory:"] = Config.DEFAULT_DATA_DIR
+        / "haiku.rag.sqlite",
+    ):
         """Initialize the RAG client with a database path."""
+        if isinstance(db_path, Path):
+            if not db_path.parent.exists():
+                Path.mkdir(db_path.parent, parents=True)
         self.store = Store(db_path)
         self.document_repository = DocumentRepository(self.store)
         self.chunk_repository = ChunkRepository(self.store)

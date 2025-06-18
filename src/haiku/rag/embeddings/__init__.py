@@ -1,7 +1,6 @@
 from haiku.rag.config import Config
 from haiku.rag.embeddings.base import EmbedderBase
 from haiku.rag.embeddings.ollama import Embedder as OllamaEmbedder
-from haiku.rag.embeddings.voyageai import Embedder as VoyageAIEmbedder
 
 
 def get_embedder() -> EmbedderBase:
@@ -14,7 +13,7 @@ def get_embedder() -> EmbedderBase:
 
     if Config.EMBEDDING_PROVIDER == "voyageai":
         try:
-            import voyageai
+            from haiku.rag.embeddings.voyageai import Embedder as VoyageAIEmbedder
         except ImportError:
             raise ImportError(
                 "VoyageAI embedder requires the 'voyageai' package. "
