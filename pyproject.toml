@@ -12,13 +12,18 @@ dependencies = [
     "ollama>=0.5.1",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.0",
+    "rich>=14.0.0",
     "sqlite-vec>=0.1.6",
     "tiktoken>=0.9.0",
+    "typer>=0.16.0",
     "watchfiles>=1.1.0",
 ]
 
 [project.optional-dependencies]
 voyageai = ["voyageai>=0.3.2"]
+
+[project.scripts]
+haiku-rag = "haiku.rag.cli:cli"
 
 [build-system]
 requires = ["hatchling"]

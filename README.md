@@ -4,11 +4,9 @@ A SQLite-based Retrieval-Augmented Generation (RAG) system built for efficient d
 
 ## Features
 - **Local SQLite**: No need to run additional servers
-- **Support for various embedding providers**: You can use Ollama, VoyageAI, OpenAI or add your own
-- **Vector Embeddings**: Uses sqlite-vec for efficient similarity search
-- **Hybrid Search**: Full-text search (FTS5) combined with vector embeddings using Reciprocal Rank Fusion
-- **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more
-- **Web Content**: Direct URL ingestion with automatic content type detection
+- **Support for various embedding providers**: You can use Ollama, VoyageAI or add your own
+- **Hybrid Search**: Vector search using `sqlite-vec` combined with full-text search `FTS5`, using Reciprocal Rank Fusion
+- **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a url!
 
 ## Installation
 
@@ -40,7 +38,45 @@ EMBEDDING_MODEL="voyage-3.5" # or any other model
 EMBEDDING_VECTOR_DIM=1024
 ```
 
-## Quick Start
+## Command Line Interface
+
+`haiku.rag` includes a CLI application for managing documents and performing searches from the command line:
+
+### Available Commands
+
+```bash
+# List all documents
+haiku-rag list
+
+# Add document from text
+haiku-rag add "Your document content here"
+
+# Add document from file or URL
+haiku-rag add-src /path/to/document.pdf
+haiku-rag add-src https://example.com/article.html
+
+# Get and display a specific document
+haiku-rag get 1
+
+# Delete a document by ID
+haiku-rag delete 1
+
+# Search documents
+haiku-rag search "machine learning"
+
+# Search with custom options
+haiku-rag search "python programming" --limit 10 --k 100
+```
+
+All commands support the `--db` option to specify a custom database path. Run
+```bash
+haiku-rag command -h
+```
+to see additional parameters for a command.
+
+## Using `haiku.rag` from python
+
+### Managing documents
 
 ```python
 from pathlib import Path
@@ -82,23 +118,9 @@ async with HaikuRAG("path/to/database.db") as client:
         print(f"Content: {chunk.content}")
         print(f"Document ID: {chunk.document_id}")
         print("---")
-
-
-# Or use without the context manager.
-client = HaikuRAG(":memory:")
-try:
-    # ... operations ...
-finally:
-    client.close()
 ```
 
-## Search Functionality
-
-`haiku.rag` provides hybrid search combining vector similarity and full-text search:
-1. **Vector Search**: Uses embeddings to find semantically similar content
-2. **Full-text Search**: Uses SQLite FTS5 for exact keyword matching
-3. **Hybrid Ranking**: Combines both using Reciprocal Rank Fusion (RRF)
-4. **Chunked Results**: Returns relevant document chunks with scores
+## Searching documents
 
 ```python
 async with HaikuRAG("database.db") as client:
@@ -115,23 +137,3 @@ async with HaikuRAG("database.db") as client:
         print(f"Content: {chunk.content}")
         print(f"From document: {chunk.document_id}")
 ```
-
-
-## Supported File Formats
-
-`haiku.rag` supports 40+ file formats through MarkItDown:
-
-- **Documents**: PDF, DOCX, PPTX, XLSX
-- **Web**: HTML, XML
-- **Text**: TXT, MD, CSV, JSON, YAML
-- **Code**: PY, JS, TS, C, CPP, JAVA, GO, RS, and more
-- **Media**: MP3, WAV (transcription)
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass: `pytest`
-5. Run type checking & linting with `pyright` & `ruff check`
-6. Submit a pull request
