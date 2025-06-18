@@ -2,8 +2,9 @@
 name = "haiku.rag"
 version = "0.1.0"
 description = "Retrieval Augmented Generation (RAG) with SQLite"
-readme = "README.md"
 authors = [{ name = "Yiorgis Gozadinos", email = "ggozadinos@gmail.com" }]
+license = { text = "MIT" }
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28.1",
