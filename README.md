@@ -3,14 +3,12 @@
 A SQLite-based Retrieval-Augmented Generation (RAG) system built for efficient document storage, chunking, and hybrid search capabilities.
 
 ## Features
-
-- **Document Management**: Store and manage documents with automatic content parsing
-- **Smart Updates**: Intelligent file/URL monitoring with MD5-based change detection
-- **Hybrid Search**: Full-text search (FTS5) combined with vector embeddings
-- **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, and more
-- **Web Content**: Direct URL ingestion with automatic content type detection
+- **Local SQLite**: No need to run additional servers
+- **Support for various embedding providers**: You can use Ollama, VoyageAI, OpenAI or add your own
 - **Vector Embeddings**: Uses sqlite-vec for efficient similarity search
-- **Automatic Chunking**: Intelligent document segmentation for better retrieval
+- **Hybrid Search**: Full-text search (FTS5) combined with vector embeddings using Reciprocal Rank Fusion
+- **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more
+- **Web Content**: Direct URL ingestion with automatic content type detection
 
 ## Installation
 
@@ -18,14 +16,28 @@ A SQLite-based Retrieval-Augmented Generation (RAG) system built for efficient d
 uv pip install haiku.rag
 ```
 
-or for development, checkout the repository and then,
+By default Ollama (with the `mxbai-embed-large` model) is used for the embeddings.
+For other providers use:
+
+- **VoyageAI**: `uv pip install haiku.rag --extra voyageai`
+
+## Configuration
+
+If you want to use an alternative embeddings provider (Ollama being the default) you will need to set the provider details through environment variables:
+
+By default:
 
 ```bash
-# Install dependencies
-uv sync
+EMBEDDING_PROVIDER="ollama"
+EMBEDDING_MODEL="mxbai-embed-large" # or any other model
+EMBEDDING_VECTOR_DIM=1024
+```
 
-# Activate virtual environment
-source .venv/bin/activate
+For VoyageAI:
+```bash
+EMBEDDING_PROVIDER="voyageai"
+EMBEDDING_MODEL="voyage-3.5" # or any other model
+EMBEDDING_VECTOR_DIM=1024
 ```
 
 ## Quick Start
@@ -90,14 +102,11 @@ finally:
 
 ```python
 async with HaikuRAG("database.db") as client:
-    # Basic search
-    results = await client.search("your query here")
 
-    # Search with custom parameters
     results = await client.search(
         query="machine learning",
-        limit=10,  # Maximum results to return
-        k=60       # RRF parameter for reciprocal rank fusion
+        limit=5,  # Maximum results to return, defaults to 5
+        k=60      # RRF parameter for reciprocal rank fusion, defaults to 60
     )
 
     # Process results
@@ -107,49 +116,16 @@ async with HaikuRAG("database.db") as client:
         print(f"From document: {chunk.document_id}")
 ```
 
-## Smart Document Updates
-
-The system automatically tracks file changes using MD5 hashes:
-
-```python
-async with HaikuRAG("database.db") as client:
-    # First call - creates new document
-    doc1 = await client.create_document_from_source("document.txt")
-
-    # Second call - no changes, returns existing document (no processing)
-    doc2 = await client.create_document_from_source("document.txt")
-    assert doc1.id == doc2.id
-
-    # After file modification - automatically updates existing document
-    # File content changed...
-    doc3 = await client.create_document_from_source("document.txt")
-    assert doc1.id == doc3.id  # Same document
-    assert doc3.content != doc1.content  # Updated content
-```
 
 ## Supported File Formats
 
-The system supports 40+ file formats through MarkItDown:
+`haiku.rag` supports 40+ file formats through MarkItDown:
 
 - **Documents**: PDF, DOCX, PPTX, XLSX
 - **Web**: HTML, XML
 - **Text**: TXT, MD, CSV, JSON, YAML
 - **Code**: PY, JS, TS, C, CPP, JAVA, GO, RS, and more
 - **Media**: MP3, WAV (transcription)
-
-## Document Metadata
-
-Documents automatically include metadata:
-
-```python
-doc = await client.create_document_from_source("example.pdf")
-print(doc.metadata)
-# {
-#   "contentType": "application/pdf",
-#   "md5": "abc123...",
-#   "custom_field": "value"  # Your custom metadata
-# }
-```
 
 ## Contributing
 

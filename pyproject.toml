@@ -16,6 +16,9 @@ dependencies = [
     "watchfiles>=1.1.0",
 ]
 
+[project.optional-dependencies]
+voyageai = ["voyageai>=0.3.2"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
