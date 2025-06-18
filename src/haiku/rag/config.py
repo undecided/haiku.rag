@@ -11,7 +11,9 @@ class AppConfig(BaseModel):
 
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
+    EMBEDDING_PROVIDER: str = "ollama"
     EMBEDDING_MODEL: str = "mxbai-embed-large"
+    EMBEDDING_VECTOR_DIM: int = 1024
     CHUNK_SIZE: int = 256
     CHUNK_OVERLAP: int = 32
 

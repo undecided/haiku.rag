@@ -2,7 +2,7 @@ import json
 import re
 
 from haiku.rag.chunker import chunker
-from haiku.rag.embeddings.ollama import Embedder
+from haiku.rag.embeddings import get_embedder
 from haiku.rag.store.models.chunk import Chunk
 from haiku.rag.store.repositories.base import BaseRepository
 
@@ -10,9 +10,9 @@ from haiku.rag.store.repositories.base import BaseRepository
 class ChunkRepository(BaseRepository[Chunk]):
     """Repository for Chunk database operations."""
 
-    def __init__(self, store, embedder: Embedder | None = None):
+    def __init__(self, store):
         super().__init__(store)
-        self.embedder = embedder or Embedder()
+        self.embedder = get_embedder()
 
     async def create(self, entity: Chunk, commit: bool = True) -> Chunk:
         """Create a chunk in the database."""

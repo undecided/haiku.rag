@@ -5,7 +5,7 @@ from typing import Literal
 
 import sqlite_vec
 
-from haiku.rag.embeddings.ollama import Embedder
+from haiku.rag.embeddings import get_embedder
 
 
 class Store:
@@ -43,7 +43,7 @@ class Store:
         """)
 
         # Create vector table for chunk embeddings
-        embedder = Embedder()
+        embedder = get_embedder()
         db.execute(f"""
             CREATE VIRTUAL TABLE IF NOT EXISTS chunk_embeddings USING vec0(
                 chunk_id INTEGER PRIMARY KEY,

@@ -1,19 +1,19 @@
 import numpy as np
 import pytest
 
-from haiku.rag.embeddings.ollama import Embedder
+from haiku.rag.embeddings import get_embedder
 
 
 @pytest.mark.asyncio
 async def test_embedder():
-    embedder = Embedder()
+    embedder = get_embedder()
     embedding = await embedder.embed("hello world")
     assert len(embedding) == embedder._vector_dim
 
 
 @pytest.mark.asyncio
 async def test_similarity():
-    embedder = Embedder()
+    embedder = get_embedder()
     phrases = [
         "I enjoy eating great food.",
         "Python is my favorite programming language.",
