@@ -87,3 +87,21 @@ class HaikuRAGApp:
         self.console.print("[repr.attrib_name]content[/repr.attrib_name]:")
         self.console.print(content)
         self.console.rule()
+
+    def serve(self, transport: str | None = None):
+        """Start the MCP server."""
+        from haiku.rag.mcp import create_mcp_server
+
+        server = create_mcp_server(self.db_path)
+
+        if transport == "stdio":
+            self.console.print("[green]Starting MCP server on stdio...[/green]")
+            server.run("stdio")
+        elif transport == "sse":
+            self.console.print(
+                "[green]Starting MCP server with streamable HTTP...[/green]"
+            )
+            server.run("sse")
+        else:
+            self.console.print("[green]Starting MCP server with HTTP...[/green]")
+            server.run("streamable-http")

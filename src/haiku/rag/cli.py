@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 
 import typer
+from rich.console import Console
 
 from haiku.rag.app import HaikuRAGApp
 from haiku.rag.utils import get_default_data_dir
@@ -10,6 +11,7 @@ cli = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]}, no_args_is_help=True
 )
 
+console = Console()
 event_loop = asyncio.get_event_loop()
 
 
@@ -18,7 +20,7 @@ def list_documents(
     db: Path = typer.Option(
         get_default_data_dir() / "haiku.rag.sqlite",
         "--db",
-        help="The path to the sqlite db to use",
+        help="Path to the SQLite database file",
     ),
 ):
     app = HaikuRAGApp(db_path=db)
@@ -33,7 +35,7 @@ def add_document_text(
     db: Path = typer.Option(
         get_default_data_dir() / "haiku.rag.sqlite",
         "--db",
-        help="The path to the sqlite db to use",
+        help="Path to the SQLite database file",
     ),
 ):
     app = HaikuRAGApp(db_path=db)
@@ -48,7 +50,7 @@ def add_document_src(
     db: Path = typer.Option(
         get_default_data_dir() / "haiku.rag.sqlite",
         "--db",
-        help="The path to the sqlite db to use",
+        help="Path to the SQLite database file",
     ),
 ):
     app = HaikuRAGApp(db_path=db)
@@ -63,7 +65,7 @@ def get_document(
     db: Path = typer.Option(
         get_default_data_dir() / "haiku.rag.sqlite",
         "--db",
-        help="The path to the sqlite db to use",
+        help="Path to the SQLite database file",
     ),
 ):
     app = HaikuRAGApp(db_path=db)
@@ -78,7 +80,7 @@ def delete_document(
     db: Path = typer.Option(
         get_default_data_dir() / "haiku.rag.sqlite",
         "--db",
-        help="The path to the sqlite db to use",
+        help="Path to the SQLite database file",
     ),
 ):
     app = HaikuRAGApp(db_path=db)
@@ -104,11 +106,47 @@ def search(
     db: Path = typer.Option(
         get_default_data_dir() / "haiku.rag.sqlite",
         "--db",
-        help="The path to the sqlite db to use",
+        help="Path to the SQLite database file",
     ),
 ):
     app = HaikuRAGApp(db_path=db)
     event_loop.run_until_complete(app.search(query=query, limit=limit, k=k))
+
+
+@cli.command(
+    "serve", help="Start the haiku.rag MCP server (by default in streamable HTTP mode)"
+)
+def serve(
+    db: Path = typer.Option(
+        get_default_data_dir() / "haiku.rag.sqlite",
+        "--db",
+        help="Path to the SQLite database file",
+    ),
+    stdio: bool = typer.Option(
+        False,
+        "--stdio",
+        help="Run MCP server on stdio Transport",
+    ),
+    sse: bool = typer.Option(
+        False,
+        "--sse",
+        help="Run MCP server on SSE transport",
+    ),
+) -> None:
+    """Start the MCP server."""
+    if stdio and sse:
+        console.print("[red]Error: Cannot use both --stdio and --http options[/red]")
+        raise typer.Exit(1)
+
+    app = HaikuRAGApp(db_path=db)
+
+    transport = None
+    if stdio:
+        transport = "stdio"
+    elif sse:
+        transport = "sse"
+
+    app.serve(transport=transport)
 
 
 if __name__ == "__main__":

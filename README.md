@@ -66,6 +66,9 @@ haiku-rag search "machine learning"
 
 # Search with custom options
 haiku-rag search "python programming" --limit 10 --k 100
+
+# Start MCP server (default HTTP transport)
+haiku-rag serve # --stdio for stdio transport or --sse for SSE transport
 ```
 
 All commands support the `--db` option to specify a custom database path. Run
@@ -73,6 +76,25 @@ All commands support the `--db` option to specify a custom database path. Run
 haiku-rag command -h
 ```
 to see additional parameters for a command.
+
+## MCP Server
+
+`haiku.rag` includes a Model Context Protocol (MCP) server that exposes RAG functionality as tools for AI assistants like Claude Desktop. The MCP server provides the following tools:
+
+- `add_document_from_file` - Add documents from local file paths
+- `add_document_from_url` - Add documents from URLs
+- `add_document_from_text` - Add documents from raw text content
+- `search_documents` - Search documents using hybrid search
+- `get_document` - Retrieve specific documents by ID
+- `list_documents` - List all documents with pagination
+- `delete_document` - Delete documents by ID
+
+You can start the server (using Streamble HTTP, stdio or SSE transports) with:
+
+```bash
+# Start with default HTTP transport
+haiku-rag serve # --stdio for stdio transport or --sse for SSE transport
+```
 
 ## Using `haiku.rag` from python
 
