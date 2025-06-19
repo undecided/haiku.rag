@@ -178,20 +178,15 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(query, params)
         rows = cursor.fetchall()
 
-        chunks = []
-        for row in rows:
-            chunk_id, document_id, content, metadata_json = row
-            metadata = json.loads(metadata_json) if metadata_json else {}
-            chunks.append(
-                Chunk(
-                    id=chunk_id,
-                    document_id=document_id,
-                    content=content,
-                    metadata=metadata,
-                )
+        return [
+            Chunk(
+                id=chunk_id,
+                document_id=document_id,
+                content=content,
+                metadata=json.loads(metadata_json) if metadata_json else {},
             )
-
-        return chunks
+            for chunk_id, document_id, content, metadata_json in rows
+        ]
 
     async def create_chunks_for_document(
         self, document_id: int, content: str, commit: bool = True
@@ -255,22 +250,18 @@ class ChunkRepository(BaseRepository[Chunk]):
         )
 
         results = cursor.fetchall()
-        chunks = []
-
-        for row in results:
-            chunk_id, document_id, content, metadata_json, distance = row
-            metadata = json.loads(metadata_json) if metadata_json else {}
-            chunk = Chunk(
-                id=chunk_id,
-                document_id=document_id,
-                content=content,
-                metadata=metadata,
+        return [
+            (
+                Chunk(
+                    id=chunk_id,
+                    document_id=document_id,
+                    content=content,
+                    metadata=json.loads(metadata_json) if metadata_json else {},
+                ),
+                1.0 / (1.0 + distance),
             )
-
-            similarity_score = 1.0 / (1.0 + distance)
-            chunks.append((chunk, similarity_score))
-
-        return chunks
+            for chunk_id, document_id, content, metadata_json, distance in results
+        ]
 
     async def search_chunks_fts(
         self, query: str, limit: int = 5
@@ -301,23 +292,20 @@ class ChunkRepository(BaseRepository[Chunk]):
         )
 
         results = cursor.fetchall()
-        chunks = []
 
-        for row in results:
-            chunk_id, document_id, content, metadata_json, rank = row
-            metadata = json.loads(metadata_json) if metadata_json else {}
-            chunk = Chunk(
-                id=chunk_id,
-                document_id=document_id,
-                content=content,
-                metadata=metadata,
+        return [
+            (
+                Chunk(
+                    id=chunk_id,
+                    document_id=document_id,
+                    content=content,
+                    metadata=json.loads(metadata_json) if metadata_json else {},
+                ),
+                -rank,
             )
-            # Convert rank to a score - FTS5 rank is negative BM25 score
-            # More negative = better match, so we negate it to get positive scores
-            fts_score = -rank
-            chunks.append((chunk, fts_score))
-
-        return chunks
+            for chunk_id, document_id, content, metadata_json, rank in results
+            # FTS5 rank is negative BM25 score
+        ]
 
     async def search_chunks_hybrid(
         self, query: str, limit: int = 5, k: int = 60
@@ -396,20 +384,18 @@ class ChunkRepository(BaseRepository[Chunk]):
         )
 
         results = cursor.fetchall()
-        chunks = []
-
-        for row in results:
-            chunk_id, document_id, content, metadata_json, rrf_score = row
-            metadata = json.loads(metadata_json) if metadata_json else {}
-            chunk = Chunk(
-                id=chunk_id,
-                document_id=document_id,
-                content=content,
-                metadata=metadata,
+        return [
+            (
+                Chunk(
+                    id=chunk_id,
+                    document_id=document_id,
+                    content=content,
+                    metadata=json.loads(metadata_json) if metadata_json else {},
+                ),
+                rrf_score,
             )
-            chunks.append((chunk, rrf_score))
-
-        return chunks
+            for chunk_id, document_id, content, metadata_json, rrf_score in results
+        ]
 
     async def get_by_document_id(self, document_id: int) -> list[Chunk]:
         """Get all chunks for a specific document."""
@@ -427,18 +413,12 @@ class ChunkRepository(BaseRepository[Chunk]):
         )
 
         rows = cursor.fetchall()
-        chunks = []
-
-        for row in rows:
-            chunk_id, document_id, content, metadata_json = row
-            metadata = json.loads(metadata_json) if metadata_json else {}
-            chunks.append(
-                Chunk(
-                    id=chunk_id,
-                    document_id=document_id,
-                    content=content,
-                    metadata=metadata,
-                )
+        return [
+            Chunk(
+                id=chunk_id,
+                document_id=document_id,
+                content=content,
+                metadata=json.loads(metadata_json) if metadata_json else {},
             )
-
-        return chunks
+            for chunk_id, document_id, content, metadata_json in rows
+        ]

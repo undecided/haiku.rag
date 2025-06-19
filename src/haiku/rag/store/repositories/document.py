@@ -197,19 +197,14 @@ class DocumentRepository(BaseRepository[Document]):
         cursor.execute(query, params)
         rows = cursor.fetchall()
 
-        documents = []
-        for row in rows:
-            document_id, content, uri, metadata_json, created_at, updated_at = row
-            metadata = json.loads(metadata_json) if metadata_json else {}
-            documents.append(
-                Document(
-                    id=document_id,
-                    content=content,
-                    uri=uri,
-                    metadata=metadata,
-                    created_at=created_at,
-                    updated_at=updated_at,
-                )
+        return [
+            Document(
+                id=document_id,
+                content=content,
+                uri=uri,
+                metadata=json.loads(metadata_json) if metadata_json else {},
+                created_at=created_at,
+                updated_at=updated_at,
             )
-
-        return documents
+            for document_id, content, uri, metadata_json, created_at, updated_at in rows
+        ]
