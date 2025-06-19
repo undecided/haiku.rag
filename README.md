@@ -4,7 +4,7 @@ A SQLite-based Retrieval-Augmented Generation (RAG) system built for efficient d
 
 ## Features
 - **Local SQLite**: No need to run additional servers
-- **Support for various embedding providers**: You can use Ollama, VoyageAI or add your own
+- **Support for various embedding providers**: You can use Ollama, VoyageAI, OpenAI or add your own
 - **Hybrid Search**: Vector search using `sqlite-vec` combined with full-text search `FTS5`, using Reciprocal Rank Fusion
 - **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a url!
 
@@ -18,6 +18,7 @@ By default Ollama (with the `mxbai-embed-large` model) is used for the embedding
 For other providers use:
 
 - **VoyageAI**: `uv pip install haiku.rag --extra voyageai`
+- **OpenAI**: `uv pip install haiku.rag --extra openai`
 
 ## Configuration
 
@@ -36,6 +37,15 @@ For VoyageAI:
 EMBEDDING_PROVIDER="voyageai"
 EMBEDDING_MODEL="voyage-3.5" # or any other model
 EMBEDDING_VECTOR_DIM=1024
+VOYAGE_API_KEY="your-api-key"
+```
+
+For OpenAI:
+```bash
+EMBEDDING_PROVIDER="openai"
+EMBEDDING_MODEL="text-embedding-3-small" # or text-embedding-3-large
+EMBEDDING_VECTOR_DIM=1536
+OPENAI_API_KEY="your-api-key"
 ```
 
 ## Command Line Interface

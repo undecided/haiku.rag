@@ -21,4 +21,16 @@ def get_embedder() -> EmbedderBase:
                 "uv pip install haiku.rag --extra voyageai"
             )
         return VoyageAIEmbedder(Config.EMBEDDING_MODEL, Config.EMBEDDING_VECTOR_DIM)
+
+    if Config.EMBEDDING_PROVIDER == "openai":
+        try:
+            from haiku.rag.embeddings.openai import Embedder as OpenAIEmbedder
+        except ImportError:
+            raise ImportError(
+                "OpenAI embedder requires the 'openai' package. "
+                "Please install haiku.rag with the 'openai' extra:"
+                "uv pip install haiku.rag --extra openai"
+            )
+        return OpenAIEmbedder(Config.EMBEDDING_MODEL, Config.EMBEDDING_VECTOR_DIM)
+
     raise ValueError(f"Unsupported embedding provider: {Config.EMBEDDING_PROVIDER}")
