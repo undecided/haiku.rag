@@ -31,15 +31,15 @@ class DocumentRepository(BaseRepository[Document]):
             cursor.execute(
                 """
                 INSERT INTO documents (content, uri, metadata, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (:content, :uri, :metadata, :created_at, :updated_at)
                 """,
-                (
-                    entity.content,
-                    entity.uri,
-                    json.dumps(entity.metadata),
-                    entity.created_at,
-                    entity.updated_at,
-                ),
+                {
+                    "content": entity.content,
+                    "uri": entity.uri,
+                    "metadata": json.dumps(entity.metadata),
+                    "created_at": entity.created_at,
+                    "updated_at": entity.updated_at,
+                },
             )
 
             document_id = cursor.lastrowid
@@ -67,9 +67,9 @@ class DocumentRepository(BaseRepository[Document]):
         cursor.execute(
             """
             SELECT id, content, uri, metadata, created_at, updated_at
-            FROM documents WHERE id = ?
+            FROM documents WHERE id = :id
             """,
-            (entity_id,),
+            {"id": entity_id},
         )
 
         row = cursor.fetchone()
@@ -97,9 +97,9 @@ class DocumentRepository(BaseRepository[Document]):
         cursor.execute(
             """
             SELECT id, content, uri, metadata, created_at, updated_at
-            FROM documents WHERE uri = ?
+            FROM documents WHERE uri = :uri
             """,
-            (uri,),
+            {"uri": uri},
         )
 
         row = cursor.fetchone()
@@ -135,16 +135,16 @@ class DocumentRepository(BaseRepository[Document]):
             cursor.execute(
                 """
                 UPDATE documents
-                SET content = ?, uri = ?, metadata = ?, updated_at = ?
-                WHERE id = ?
+                SET content = :content, uri = :uri, metadata = :metadata, updated_at = :updated_at
+                WHERE id = :id
                 """,
-                (
-                    entity.content,
-                    entity.uri,
-                    json.dumps(entity.metadata),
-                    entity.updated_at,
-                    entity.id,
-                ),
+                {
+                    "content": entity.content,
+                    "uri": entity.uri,
+                    "metadata": json.dumps(entity.metadata),
+                    "updated_at": entity.updated_at,
+                    "id": entity.id,
+                },
             )
 
             # Delete existing chunks and regenerate using ChunkRepository
@@ -169,7 +169,7 @@ class DocumentRepository(BaseRepository[Document]):
             raise ValueError("Store connection is not available")
 
         cursor = self.store._connection.cursor()
-        cursor.execute("DELETE FROM documents WHERE id = ?", (entity_id,))
+        cursor.execute("DELETE FROM documents WHERE id = :id", {"id": entity_id})
 
         deleted = cursor.rowcount > 0
         self.store._connection.commit()
@@ -184,15 +184,15 @@ class DocumentRepository(BaseRepository[Document]):
 
         cursor = self.store._connection.cursor()
         query = "SELECT id, content, uri, metadata, created_at, updated_at FROM documents ORDER BY created_at DESC"
-        params = []
+        params = {}
 
         if limit is not None:
-            query += " LIMIT ?"
-            params.append(limit)
+            query += " LIMIT :limit"
+            params["limit"] = limit
 
         if offset is not None:
-            query += " OFFSET ?"
-            params.append(offset)
+            query += " OFFSET :offset"
+            params["offset"] = offset
 
         cursor.execute(query, params)
         rows = cursor.fetchall()

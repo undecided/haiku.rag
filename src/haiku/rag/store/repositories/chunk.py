@@ -23,9 +23,13 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(
             """
             INSERT INTO chunks (document_id, content, metadata)
-            VALUES (?, ?, ?)
+            VALUES (:document_id, :content, :metadata)
             """,
-            (entity.document_id, entity.content, json.dumps(entity.metadata)),
+            {
+                "document_id": entity.document_id,
+                "content": entity.content,
+                "metadata": json.dumps(entity.metadata),
+            },
         )
 
         entity.id = cursor.lastrowid
@@ -36,18 +40,18 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(
             """
             INSERT INTO chunk_embeddings (chunk_id, embedding)
-            VALUES (?, ?)
+            VALUES (:chunk_id, :embedding)
             """,
-            (entity.id, serialized_embedding),
+            {"chunk_id": entity.id, "embedding": serialized_embedding},
         )
 
         # Insert into FTS5 table for full-text search
         cursor.execute(
             """
             INSERT INTO chunks_fts(rowid, content)
-            VALUES (?, ?)
+            VALUES (:rowid, :content)
             """,
-            (entity.id, entity.content),
+            {"rowid": entity.id, "content": entity.content},
         )
 
         if commit:
@@ -63,9 +67,9 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(
             """
             SELECT id, document_id, content, metadata
-            FROM chunks WHERE id = ?
+            FROM chunks WHERE id = :id
             """,
-            (entity_id,),
+            {"id": entity_id},
         )
 
         row = cursor.fetchone()
@@ -90,15 +94,15 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(
             """
             UPDATE chunks
-            SET document_id = ?, content = ?, metadata = ?
-            WHERE id = ?
+            SET document_id = :document_id, content = :content, metadata = :metadata
+            WHERE id = :id
             """,
-            (
-                entity.document_id,
-                entity.content,
-                json.dumps(entity.metadata),
-                entity.id,
-            ),
+            {
+                "document_id": entity.document_id,
+                "content": entity.content,
+                "metadata": json.dumps(entity.metadata),
+                "id": entity.id,
+            },
         )
 
         # Regenerate and update embedding
@@ -107,20 +111,20 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(
             """
             UPDATE chunk_embeddings
-            SET embedding = ?
-            WHERE chunk_id = ?
+            SET embedding = :embedding
+            WHERE chunk_id = :chunk_id
             """,
-            (serialized_embedding, entity.id),
+            {"embedding": serialized_embedding, "chunk_id": entity.id},
         )
 
         # Update FTS5 table
         cursor.execute(
             """
             UPDATE chunks_fts
-            SET content = ?
-            WHERE rowid = ?
+            SET content = :content
+            WHERE rowid = :rowid
             """,
-            (entity.content, entity.id),
+            {"content": entity.content, "rowid": entity.id},
         )
 
         self.store._connection.commit()
@@ -134,13 +138,18 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor = self.store._connection.cursor()
 
         # Delete from FTS5 table first
-        cursor.execute("DELETE FROM chunks_fts WHERE rowid = ?", (entity_id,))
+        cursor.execute(
+            "DELETE FROM chunks_fts WHERE rowid = :rowid", {"rowid": entity_id}
+        )
 
         # Delete the embedding
-        cursor.execute("DELETE FROM chunk_embeddings WHERE chunk_id = ?", (entity_id,))
+        cursor.execute(
+            "DELETE FROM chunk_embeddings WHERE chunk_id = :chunk_id",
+            {"chunk_id": entity_id},
+        )
 
         # Delete the chunk
-        cursor.execute("DELETE FROM chunks WHERE id = ?", (entity_id,))
+        cursor.execute("DELETE FROM chunks WHERE id = :id", {"id": entity_id})
 
         deleted = cursor.rowcount > 0
         if commit:
@@ -156,15 +165,15 @@ class ChunkRepository(BaseRepository[Chunk]):
 
         cursor = self.store._connection.cursor()
         query = "SELECT id, document_id, content, metadata FROM chunks ORDER BY document_id, id"
-        params = []
+        params = {}
 
         if limit is not None:
-            query += " LIMIT ?"
-            params.append(limit)
+            query += " LIMIT :limit"
+            params["limit"] = limit
 
         if offset is not None:
-            query += " OFFSET ?"
-            params.append(offset)
+            query += " OFFSET :offset"
+            params["offset"] = offset
 
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -239,10 +248,10 @@ class ChunkRepository(BaseRepository[Chunk]):
             SELECT c.id, c.document_id, c.content, c.metadata, distance
             FROM chunk_embeddings
             JOIN chunks c ON c.id = chunk_embeddings.chunk_id
-            WHERE embedding MATCH ? AND k = ?
+            WHERE embedding MATCH :embedding AND k = :k
             ORDER BY distance
             """,
-            (serialized_query_embedding, limit),
+            {"embedding": serialized_query_embedding, "k": limit},
         )
 
         results = cursor.fetchall()
@@ -284,11 +293,11 @@ class ChunkRepository(BaseRepository[Chunk]):
             SELECT c.id, c.document_id, c.content, c.metadata, rank
             FROM chunks_fts
             JOIN chunks c ON c.id = chunks_fts.rowid
-            WHERE chunks_fts MATCH ?
+            WHERE chunks_fts MATCH :query
             ORDER BY rank
-            LIMIT ?
+            LIMIT :limit
             """,
-            (fts_query, limit),
+            {"query": fts_query, "limit": limit},
         )
 
         results = cursor.fetchall()
@@ -341,7 +350,7 @@ class ChunkRepository(BaseRepository[Chunk]):
                     ROW_NUMBER() OVER (ORDER BY ce.distance) as vector_rank
                 FROM chunk_embeddings ce
                 JOIN chunks c ON c.id = ce.chunk_id
-                WHERE ce.embedding MATCH ? AND k = ?
+                WHERE ce.embedding MATCH :embedding AND k = :k_vector
                 ORDER BY ce.distance
             ),
             fts_search AS (
@@ -353,7 +362,7 @@ class ChunkRepository(BaseRepository[Chunk]):
                     ROW_NUMBER() OVER (ORDER BY chunks_fts.rank) as fts_rank
                 FROM chunks_fts
                 JOIN chunks c ON c.id = chunks_fts.rowid
-                WHERE chunks_fts MATCH ?
+                WHERE chunks_fts MATCH :fts_query
                 ORDER BY chunks_fts.rank
             ),
             all_chunks AS (
@@ -367,7 +376,7 @@ class ChunkRepository(BaseRepository[Chunk]):
                     a.document_id,
                     a.content,
                     a.metadata,
-                    COALESCE(1.0 / (? + v.vector_rank), 0) + COALESCE(1.0 / (? + f.fts_rank), 0) as rrf_score
+                    COALESCE(1.0 / (:k + v.vector_rank), 0) + COALESCE(1.0 / (:k + f.fts_rank), 0) as rrf_score
                 FROM all_chunks a
                 LEFT JOIN vector_search v ON a.id = v.id
                 LEFT JOIN fts_search f ON a.id = f.id
@@ -375,9 +384,15 @@ class ChunkRepository(BaseRepository[Chunk]):
             SELECT id, document_id, content, metadata, rrf_score
             FROM rrf_scores
             ORDER BY rrf_score DESC
-            LIMIT ?
+            LIMIT :limit
             """,
-            (serialized_query_embedding, limit * 3, fts_query, k, k, limit),
+            {
+                "embedding": serialized_query_embedding,
+                "k_vector": limit * 3,
+                "fts_query": fts_query,
+                "k": k,
+                "limit": limit,
+            },
         )
 
         results = cursor.fetchall()
@@ -405,10 +420,10 @@ class ChunkRepository(BaseRepository[Chunk]):
         cursor.execute(
             """
             SELECT id, document_id, content, metadata
-            FROM chunks WHERE document_id = ?
+            FROM chunks WHERE document_id = :document_id
             ORDER BY JSON_EXTRACT(metadata, '$.order')
             """,
-            (document_id,),
+            {"document_id": document_id},
         )
 
         rows = cursor.fetchall()
