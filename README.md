@@ -27,24 +27,24 @@ If you want to use an alternative embeddings provider (Ollama being the default)
 By default:
 
 ```bash
-EMBEDDING_PROVIDER="ollama"
-EMBEDDING_MODEL="mxbai-embed-large" # or any other model
-EMBEDDING_VECTOR_DIM=1024
+EMBEDDINGS_PROVIDER="ollama"
+EMBEDDINGS_MODEL="mxbai-embed-large" # or any other model
+EMBEDDINGS_VECTOR_DIM=1024
 ```
 
 For VoyageAI:
 ```bash
-EMBEDDING_PROVIDER="voyageai"
-EMBEDDING_MODEL="voyage-3.5" # or any other model
-EMBEDDING_VECTOR_DIM=1024
+EMBEDDINGS_PROVIDER="voyageai"
+EMBEDDINGS_MODEL="voyage-3.5" # or any other model
+EMBEDDINGS_VECTOR_DIM=1024
 VOYAGE_API_KEY="your-api-key"
 ```
 
 For OpenAI:
 ```bash
-EMBEDDING_PROVIDER="openai"
-EMBEDDING_MODEL="text-embedding-3-small" # or text-embedding-3-large
-EMBEDDING_VECTOR_DIM=1536
+EMBEDDINGS_PROVIDER="openai"
+EMBEDDINGS_MODEL="text-embedding-3-small" # or text-embedding-3-large
+EMBEDDINGS_VECTOR_DIM=1536
 OPENAI_API_KEY="your-api-key"
 ```
 

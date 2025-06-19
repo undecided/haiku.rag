@@ -14,9 +14,9 @@ class AppConfig(BaseModel):
 
     DEFAULT_DATA_DIR: Path = get_default_data_dir()
 
-    EMBEDDING_PROVIDER: str = "ollama"
-    EMBEDDING_MODEL: str = "mxbai-embed-large"
-    EMBEDDING_VECTOR_DIM: int = 1024
+    EMBEDDINGS_PROVIDER: str = "ollama"
+    EMBEDDINGS_MODEL: str = "mxbai-embed-large"
+    EMBEDDINGS_VECTOR_DIM: int = 1024
 
     CHUNK_SIZE: int = 256
     CHUNK_OVERLAP: int = 32

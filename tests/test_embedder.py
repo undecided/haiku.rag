@@ -50,8 +50,8 @@ async def test_similarity():
 
 @pytest.mark.asyncio
 async def test_openai_embedder(monkeypatch):
-    monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
-    monkeypatch.setenv("EMBEDDING_MODEL", "text-embedding-3-small")
+    monkeypatch.setenv("EMBEDDINGS_PROVIDER", "openai")
+    monkeypatch.setenv("EMBEDDINGS_MODEL", "text-embedding-3-small")
 
     try:
         from haiku.rag.embeddings.openai import Embedder as OpenAIEmbedder
@@ -94,8 +94,8 @@ async def test_openai_embedder(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_voyageai_embedder(monkeypatch):
-    monkeypatch.setenv("EMBEDDING_PROVIDER", "voyageai")
-    monkeypatch.setenv("EMBEDDING_MODEL", "voyage-3.5")
+    monkeypatch.setenv("EMBEDDINGS_PROVIDER", "voyageai")
+    monkeypatch.setenv("EMBEDDINGS_MODEL", "voyage-3.5")
 
     try:
         from haiku.rag.embeddings.voyageai import Embedder as VoyageAIEmbedder

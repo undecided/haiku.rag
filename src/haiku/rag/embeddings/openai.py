@@ -5,7 +5,7 @@ try:
     from haiku.rag.embeddings.base import EmbedderBase
 
     class Embedder(EmbedderBase):
-        _model: str = Config.EMBEDDING_MODEL
+        _model: str = Config.EMBEDDINGS_MODEL
         _vector_dim: int = 1536
 
         async def embed(self, text: str) -> list[float]:
