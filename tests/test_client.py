@@ -98,7 +98,7 @@ async def test_client_create_document_from_source():
 
         assert doc.id is not None
         assert doc.content == test_content
-        assert doc.uri == str(temp_path.resolve())
+        assert doc.uri == temp_path.as_uri()
         assert doc.metadata["source_type"] == "file"
         assert "contentType" in doc.metadata
         assert "md5" in doc.metadata
@@ -109,7 +109,7 @@ async def test_client_create_document_from_source():
 
         assert doc2.id is not None
         assert doc2.content == test_content
-        assert doc2.uri == str(temp_path.resolve())
+        assert doc2.uri == temp_path.as_uri()
         assert "contentType" in doc2.metadata
         assert "md5" in doc2.metadata
 
