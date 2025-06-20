@@ -10,7 +10,7 @@ logger = get_logger()
 
 
 class FileFilter(DefaultFilter):
-    def __init__(self, *, ignore_paths: list[str | Path] | None = None) -> None:
+    def __init__(self, *, ignore_paths: list[Path] | None = None) -> None:
         self.extensions = tuple(FileReader.extensions)
         super().__init__(ignore_paths=ignore_paths)
 
@@ -19,7 +19,7 @@ class FileFilter(DefaultFilter):
 
 
 class FileWatcher:
-    def __init__(self, paths: list[str | Path]):
+    def __init__(self, paths: list[Path]):
         self.paths = paths
 
     async def observe(self):
@@ -37,10 +37,8 @@ class FileWatcher:
             elif change == Change.deleted:
                 await self._delete_document(Path(path))
 
-    async def refresh(self, paths: list[str | Path] | None = None):
-        if paths is None:
-            paths = self.paths
-        for path in paths:
+    async def refresh(self):
+        for path in self.paths:
             for f in Path(path).rglob("**/*"):
                 if f.is_file() and f.suffix in FileReader.extensions:
                     await self._upsert_document(f)

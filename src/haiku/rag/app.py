@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from haiku.rag.client import HaikuRAG
+from haiku.rag.config import Config
 from haiku.rag.mcp import create_mcp_server
 from haiku.rag.monitor import FileWatcher
 from haiku.rag.store.models.chunk import Chunk
@@ -93,7 +94,7 @@ class HaikuRAGApp:
 
     async def serve(self, transport: str | None = None):
         """Start the MCP server."""
-        monitor = FileWatcher(paths=[])
+        monitor = FileWatcher(paths=Config.MONITOR_DIRECTORIES)
         asyncio.create_task(monitor.observe())
         server = create_mcp_server(self.db_path)
 
