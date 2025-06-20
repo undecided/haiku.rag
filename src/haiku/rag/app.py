@@ -94,13 +94,14 @@ class HaikuRAGApp:
 
     async def serve(self, transport: str | None = None):
         """Start the MCP server."""
-        monitor = FileWatcher(paths=Config.MONITOR_DIRECTORIES)
-        asyncio.create_task(monitor.observe())
-        server = create_mcp_server(self.db_path)
+        async with HaikuRAG(self.db_path) as client:
+            monitor = FileWatcher(paths=Config.MONITOR_DIRECTORIES, client=client)
+            asyncio.create_task(monitor.observe())
+            server = create_mcp_server(self.db_path)
 
-        if transport == "stdio":
-            await server.run_stdio_async()
-        elif transport == "sse":
-            await server.run_sse_async("sse")
-        else:
-            await server.run_http_async("streamable-http")
+            if transport == "stdio":
+                await server.run_stdio_async()
+            elif transport == "sse":
+                await server.run_sse_async("sse")
+            else:
+                await server.run_http_async("streamable-http")
