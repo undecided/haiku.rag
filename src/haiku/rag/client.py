@@ -88,7 +88,7 @@ class HaikuRAG:
         if not source_path.exists():
             raise ValueError(f"File does not exist: {source_path}")
 
-        uri = str(source_path.resolve())
+        uri = source_path.as_uri()
         md5_hash = hashlib.md5(source_path.read_bytes()).hexdigest()
 
         # Check if document already exists
