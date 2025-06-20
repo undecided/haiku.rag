@@ -1,9 +1,12 @@
+import asyncio
 from pathlib import Path
 
 from rich.console import Console
 from rich.markdown import Markdown
 
 from haiku.rag.client import HaikuRAG
+from haiku.rag.mcp import create_mcp_server
+from haiku.rag.monitor import FileWatcher
 from haiku.rag.store.models.chunk import Chunk
 from haiku.rag.store.models.document import Document
 
@@ -88,20 +91,15 @@ class HaikuRAGApp:
         self.console.print(content)
         self.console.rule()
 
-    def serve(self, transport: str | None = None):
+    async def serve(self, transport: str | None = None):
         """Start the MCP server."""
-        from haiku.rag.mcp import create_mcp_server
-
+        monitor = FileWatcher(paths=[])
+        asyncio.create_task(monitor.observe())
         server = create_mcp_server(self.db_path)
 
         if transport == "stdio":
-            self.console.print("[green]Starting MCP server on stdio...[/green]")
-            server.run("stdio")
+            await server.run_stdio_async()
         elif transport == "sse":
-            self.console.print(
-                "[green]Starting MCP server with streamable HTTP...[/green]"
-            )
-            server.run("sse")
+            await server.run_sse_async("sse")
         else:
-            self.console.print("[green]Starting MCP server with HTTP...[/green]")
-            server.run("streamable-http")
+            await server.run_http_async("streamable-http")

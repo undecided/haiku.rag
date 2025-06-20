@@ -146,7 +146,7 @@ def serve(
     elif sse:
         transport = "sse"
 
-    app.serve(transport=transport)
+    event_loop.run_until_complete(app.serve(transport=transport))
 
 
 if __name__ == "__main__":
