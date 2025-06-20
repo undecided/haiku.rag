@@ -7,6 +7,9 @@ A SQLite-based Retrieval-Augmented Generation (RAG) system built for efficient d
 - **Support for various embedding providers**: You can use Ollama, VoyageAI or add your own
 - **Hybrid Search**: Vector search using `sqlite-vec` combined with full-text search `FTS5`, using Reciprocal Rank Fusion
 - **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a url!
+- **File monitoring** when run as a server automatically indexing your files
+- **MCP server** Exposes functionality as MCP tools.
+- **Python client** Call `haiku.rag` from your own python applications.
 
 ## Installation
 
@@ -20,6 +23,13 @@ For other providers use:
 - **VoyageAI**: `uv pip install haiku.rag --extra voyageai`
 
 ## Configuration
+
+You can set the directories to monitor using the `MONITOR_DIRECTORIES` environment variable (as comma separated values) :
+
+```bash
+# Monitor single directory
+export MONITOR_DIRECTORIES="/path/to/documents,/another_path/to/documents"
+```
 
 If you want to use an alternative embeddings provider (Ollama being the default) you will need to set the provider details through environment variables:
 
@@ -67,7 +77,7 @@ haiku-rag search "machine learning"
 # Search with custom options
 haiku-rag search "python programming" --limit 10 --k 100
 
-# Start MCP server (default HTTP transport)
+# Start file monitoring & MCP server (default HTTP transport)
 haiku-rag serve # --stdio for stdio transport or --sse for SSE transport
 ```
 
@@ -77,7 +87,26 @@ haiku-rag command -h
 ```
 to see additional parameters for a command.
 
-## MCP Server
+## File Monitoring & MCP server
+
+You can start the server (using Streamble HTTP, stdio or SSE transports) with:
+
+```bash
+# Start with default HTTP transport
+haiku-rag serve # --stdio for stdio transport or --sse for SSE transport
+```
+
+You need to have set the `MONITOR_DIRECTORIES` environment variable for monitoring to take place.
+
+### File monitoring
+
+`haiku.rag` can watch directories for changes and automatically update the document store:
+
+- **Startup**: Scan all monitored directories and add any new files
+- **File Added/Modified**: Automatically parse and add/update the document in the database
+- **File Deleted**: Remove the corresponding document from the database
+
+### MCP Server
 
 `haiku.rag` includes a Model Context Protocol (MCP) server that exposes RAG functionality as tools for AI assistants like Claude Desktop. The MCP server provides the following tools:
 
@@ -88,13 +117,6 @@ to see additional parameters for a command.
 - `get_document` - Retrieve specific documents by ID
 - `list_documents` - List all documents with pagination
 - `delete_document` - Delete documents by ID
-
-You can start the server (using Streamble HTTP, stdio or SSE transports) with:
-
-```bash
-# Start with default HTTP transport
-haiku-rag serve # --stdio for stdio transport or --sse for SSE transport
-```
 
 ## Using `haiku.rag` from python
 
