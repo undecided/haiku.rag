@@ -1,14 +1,15 @@
 # Haiku SQLite RAG
 
-A SQLite-based Retrieval-Augmented Generation (RAG) system built for efficient document storage, chunking, and hybrid search capabilities.
+A Retrieval-Augmented Generation (RAG) library on SQLite.
 
 ## Features
 - **Local SQLite**: No need to run additional servers
 - **Support for various embedding providers**: You can use Ollama, VoyageAI, OpenAI or add your own
 - **Hybrid Search**: Vector search using `sqlite-vec` combined with full-text search `FTS5`, using Reciprocal Rank Fusion
-- **Multi-format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a url!
 - **File monitoring** when run as a server automatically indexing your files
+- **Extended file format Support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a url!
 - **MCP server** Exposes functionality as MCP tools.
+- **CLI commands** Access all functionality from your terminal
 - **Python client** Call `haiku.rag` from your own python applications.
 
 ## Installation
