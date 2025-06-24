@@ -1,13 +1,16 @@
+import asyncio
 from pathlib import Path
 
 from datasets import Dataset, load_dataset
+from llm_judge import LLMJudge
 from tqdm import tqdm
 
 from haiku.rag.client import HaikuRAG
+from haiku.rag.qa.ollama import QA
 
 
 async def populate_db():
-    if (Path(__file__).parent / "benchmark.sqlite").exists():
+    if (Path(__file__).parent / "data" / "benchmark.sqlite").exists():
         print("Benchmark database already exists. Skipping creation.")
         return
 
@@ -61,6 +64,7 @@ async def run_match_benchmark():
     recall_at_2 = correct_at_2 / total_queries
     recall_at_3 = correct_at_3 / total_queries
 
+    print("\n=== Retrieval Benchmark Results ===")
     print(f"Total queries: {total_queries}")
     print(f"Recall@1: {recall_at_1:.4f}")
     print(f"Recall@2: {recall_at_2:.4f}")
@@ -69,12 +73,48 @@ async def run_match_benchmark():
     return {"recall@1": recall_at_1, "recall@2": recall_at_2, "recall@3": recall_at_3}
 
 
+async def run_qa_benchmark():
+    """Run QA benchmarking on the corpus."""
+    ds: Dataset = load_dataset("ServiceNow/repliqa")["repliqa_3"]  # type: ignore
+    corpus = ds.filter(lambda doc: doc["document_topic"] == "News Stories")
+
+    judge = LLMJudge()
+    correct_answers = 0
+    total_questions = 0
+
+    async with HaikuRAG(Path(__file__).parent / "benchmark.sqlite") as rag:
+        qa = QA(rag)
+
+        for i, doc in enumerate(tqdm(corpus, desc="QA Benchmarking")):
+            question = doc["question"]  # type: ignore
+            expected_answer = doc["answer"]  # type: ignore
+
+            generated_answer = await qa.answer(question)
+            is_equivalent = await judge.judge_answers(
+                question, generated_answer, expected_answer
+            )
+
+            if is_equivalent:
+                correct_answers += 1
+            total_questions += 1
+
+    accuracy = correct_answers / total_questions if total_questions > 0 else 0
+
+    print("\n=== QA Benchmark Results ===")
+    print(f"Total questions: {total_questions}")
+    print(f"Correct answers: {correct_answers}")
+    print(f"QA Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)")
+
+
 async def main():
     await populate_db()
+
+    print("Running retrieval benchmarks...")
     await run_match_benchmark()
+
+    print("\nRunning QA benchmarks...")
+    await run_qa_benchmark()
 
 
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())
