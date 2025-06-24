@@ -325,7 +325,6 @@ class ChunkRepository(BaseRepository[Chunk]):
         words = re.findall(r"\b\w+\b", query.lower())
         # Join with OR to find chunks containing any of the keywords
         fts_query = " OR ".join(words) if words else query
-
         # Perform hybrid search using RRF (Reciprocal Rank Fusion)
         cursor.execute(
             """

@@ -19,6 +19,9 @@ class AppConfig(BaseModel):
     EMBEDDINGS_MODEL: str = "mxbai-embed-large"
     EMBEDDINGS_VECTOR_DIM: int = 1024
 
+    QA_PROVIDER: str = "ollama"
+    QA_MODEL: str = "qwen3"
+
     CHUNK_SIZE: int = 256
     CHUNK_OVERLAP: int = 32
 

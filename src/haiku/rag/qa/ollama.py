@@ -1,0 +1,89 @@
+from ollama import AsyncClient
+
+from haiku.rag.client import HaikuRAG
+from haiku.rag.config import Config
+from haiku.rag.qa.base import QABase
+
+
+class QA(QABase):
+    def __init__(self, client: HaikuRAG, model: str = Config.QA_MODEL):
+        super().__init__(client, model or self._model)
+
+    async def answer(self, question: str) -> str:
+        ollama_client = AsyncClient(host=Config.OLLAMA_BASE_URL)
+
+        # Define the search tool
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_documents",
+                    "description": "Search the knowledge base for relevant documents",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query to find relevant documents",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "description": "Maximum number of results to return",
+                                "default": 3,
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+        ]
+
+        messages = [
+            {"role": "system", "content": self._system_prompt},
+            {"role": "user", "content": question},
+        ]
+
+        # Initial response with tool calling
+        response = await ollama_client.chat(
+            model=self._model,
+            messages=messages,
+            tools=tools,
+            options={"temperature": 0.0, "seed": 42},
+            think=False,
+        )
+
+        if response.get("message", {}).get("tool_calls"):
+            for tool_call in response["message"]["tool_calls"]:
+                if tool_call["function"]["name"] == "search_documents":
+                    args = tool_call["function"]["arguments"]
+                    query = args.get("query", question)
+                    limit = int(args.get("limit", 3))
+
+                    search_results = await self._client.search(query, limit=limit)
+
+                    context_chunks = []
+                    for chunk, score in search_results:
+                        context_chunks.append(
+                            f"Content: {chunk.content}\nScore: {score:.4f}"
+                        )
+
+                    context = "\n\n".join(context_chunks)
+
+                    messages.append(response["message"])
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "content": context,
+                            "tool_call_id": tool_call.get("id", "search_tool"),
+                        }
+                    )
+
+            final_response = await ollama_client.chat(
+                model=self._model,
+                messages=messages,
+                think=False,
+                options={"temperature": 0.0, "seed": 42},
+            )
+            return final_response["message"]["content"]
+        else:
+            return response["message"]["content"]
