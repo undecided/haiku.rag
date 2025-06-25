@@ -3,18 +3,13 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from haiku.rag.app import HaikuRAGApp
 from haiku.rag.store.models.document import Document
 
 
 @pytest.fixture
 def app():
-    return HaikuRAGApp(db_path=Path(":memory:"))
-
-
-@pytest.fixture
-def app():
-    """Fixture for HaikuRAGApp."""
     return HaikuRAGApp(db_path=Path(":memory:"))
 
 
@@ -30,16 +25,18 @@ async def test_list_documents(app: HaikuRAGApp, monkeypatch):
     # The async context manager should return the mock client itself
     mock_client.__aenter__.return_value = mock_client
 
-    monkeypatch.setattr(app, "_rich_print_document", MagicMock())
-    monkeypatch.setattr(app.console, "print", MagicMock())
+    mock_rich_print = MagicMock()
+    mock_console_print = MagicMock()
+    monkeypatch.setattr(app, "_rich_print_document", mock_rich_print)
+    monkeypatch.setattr(app.console, "print", mock_console_print)
 
     with patch("haiku.rag.app.HaikuRAG", return_value=mock_client):
         await app.list_documents()
 
     mock_client.list_documents.assert_called_once()
-    assert app._rich_print_document.call_count == len(mock_docs)
-    app._rich_print_document.assert_any_call(mock_docs[0], truncate=True)
-    app._rich_print_document.assert_any_call(mock_docs[1], truncate=True)
+    assert mock_rich_print.call_count == len(mock_docs)
+    mock_rich_print.assert_any_call(mock_docs[0], truncate=True)
+    mock_rich_print.assert_any_call(mock_docs[1], truncate=True)
 
 
 @pytest.mark.asyncio
@@ -50,15 +47,16 @@ async def test_add_document_from_text(app: HaikuRAGApp, monkeypatch):
     mock_client.create_document.return_value = mock_doc
     mock_client.__aenter__.return_value = mock_client
 
-    monkeypatch.setattr(app, "_rich_print_document", MagicMock())
+    mock_rich_print = MagicMock()
     mock_print = MagicMock()
+    monkeypatch.setattr(app, "_rich_print_document", mock_rich_print)
     monkeypatch.setattr(app.console, "print", mock_print)
 
     with patch("haiku.rag.app.HaikuRAG", return_value=mock_client):
         await app.add_document_from_text("test document")
 
     mock_client.create_document.assert_called_once_with("test document")
-    app._rich_print_document.assert_called_once_with(mock_doc, truncate=True)
+    mock_rich_print.assert_called_once_with(mock_doc, truncate=True)
     mock_print.assert_called_once_with(
         "[b]Document with id [cyan]1[/cyan] added successfully.[/b]"
     )
@@ -72,8 +70,9 @@ async def test_add_document_from_source(app: HaikuRAGApp, monkeypatch):
     mock_client.create_document_from_source.return_value = mock_doc
     mock_client.__aenter__.return_value = mock_client
 
-    monkeypatch.setattr(app, "_rich_print_document", MagicMock())
+    mock_rich_print = MagicMock()
     mock_print = MagicMock()
+    monkeypatch.setattr(app, "_rich_print_document", mock_rich_print)
     monkeypatch.setattr(app.console, "print", mock_print)
 
     file_path = Path("test.txt")
@@ -81,7 +80,7 @@ async def test_add_document_from_source(app: HaikuRAGApp, monkeypatch):
         await app.add_document_from_source(file_path)
 
     mock_client.create_document_from_source.assert_called_once_with(file_path)
-    app._rich_print_document.assert_called_once_with(mock_doc, truncate=True)
+    mock_rich_print.assert_called_once_with(mock_doc, truncate=True)
     mock_print.assert_called_once_with(
         "[b]Document with id [cyan]1[/cyan] added successfully.[/b]"
     )
@@ -95,13 +94,14 @@ async def test_get_document(app: HaikuRAGApp, monkeypatch):
     mock_client.get_document_by_id.return_value = mock_doc
     mock_client.__aenter__.return_value = mock_client
 
-    monkeypatch.setattr(app, "_rich_print_document", MagicMock())
+    mock_rich_print = MagicMock()
+    monkeypatch.setattr(app, "_rich_print_document", mock_rich_print)
 
     with patch("haiku.rag.app.HaikuRAG", return_value=mock_client):
         await app.get_document(1)
 
     mock_client.get_document_by_id.assert_called_once_with(1)
-    app._rich_print_document.assert_called_once_with(mock_doc, truncate=False)
+    mock_rich_print.assert_called_once_with(mock_doc, truncate=False)
 
 
 @pytest.mark.asyncio
@@ -145,13 +145,14 @@ async def test_search(app: HaikuRAGApp, monkeypatch):
     mock_client.search.return_value = mock_results
     mock_client.__aenter__.return_value = mock_client
 
-    monkeypatch.setattr(app, "_rich_print_search_result", MagicMock())
+    mock_rich_print_search = MagicMock()
+    monkeypatch.setattr(app, "_rich_print_search_result", mock_rich_print_search)
 
     with patch("haiku.rag.app.HaikuRAG", return_value=mock_client):
         await app.search("query")
 
     mock_client.search.assert_called_once_with("query", limit=5, k=60)
-    assert app._rich_print_search_result.call_count == len(mock_results)
+    assert mock_rich_print_search.call_count == len(mock_results)
 
 
 @pytest.mark.asyncio
@@ -180,8 +181,12 @@ async def test_serve(app: HaikuRAGApp, monkeypatch, transport):
     mock_task = asyncio.create_task(asyncio.sleep(0))
     mock_task.cancel = MagicMock()
 
-    monkeypatch.setattr("haiku.rag.app.create_mcp_server", MagicMock(return_value=mock_server))
-    monkeypatch.setattr("haiku.rag.app.FileWatcher", MagicMock(return_value=mock_watcher))
+    monkeypatch.setattr(
+        "haiku.rag.app.create_mcp_server", MagicMock(return_value=mock_server)
+    )
+    monkeypatch.setattr(
+        "haiku.rag.app.FileWatcher", MagicMock(return_value=mock_watcher)
+    )
     monkeypatch.setattr("asyncio.create_task", MagicMock(return_value=mock_task))
 
     mock_client = AsyncMock()
