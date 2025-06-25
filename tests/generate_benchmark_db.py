@@ -8,16 +8,18 @@ from tqdm import tqdm
 from haiku.rag.client import HaikuRAG
 from haiku.rag.qa.ollama import QA
 
+db_path = Path(__file__).parent / "data" / "benchmark.sqlite"
+
 
 async def populate_db():
-    if (Path(__file__).parent / "data" / "benchmark.sqlite").exists():
+    if (db_path).exists():
         print("Benchmark database already exists. Skipping creation.")
         return
 
     ds: Dataset = load_dataset("ServiceNow/repliqa")["repliqa_3"]  # type: ignore
     corpus = ds.filter(lambda doc: doc["document_topic"] == "News Stories")
 
-    async with HaikuRAG(Path(__file__).parent / "benchmark.sqlite") as rag:
+    async with HaikuRAG(db_path) as rag:
         for i, doc in enumerate(tqdm(corpus)):
             await rag.create_document(
                 content=doc["document_extracted"],  # type: ignore
@@ -34,7 +36,7 @@ async def run_match_benchmark():
     correct_at_3 = 0
     total_queries = 0
 
-    async with HaikuRAG(Path(__file__).parent / "benchmark.sqlite") as rag:
+    async with HaikuRAG(db_path) as rag:
         for i, doc in enumerate(tqdm(corpus)):
             doc_id = doc["document_id"]  # type: ignore
             matches = await rag.search(
@@ -73,16 +75,19 @@ async def run_match_benchmark():
     return {"recall@1": recall_at_1, "recall@2": recall_at_2, "recall@3": recall_at_3}
 
 
-async def run_qa_benchmark():
+async def run_qa_benchmark(k: int | None = None):
     """Run QA benchmarking on the corpus."""
     ds: Dataset = load_dataset("ServiceNow/repliqa")["repliqa_3"]  # type: ignore
     corpus = ds.filter(lambda doc: doc["document_topic"] == "News Stories")
+
+    if k is not None:
+        corpus = corpus.select(range(min(k, len(corpus))))
 
     judge = LLMJudge()
     correct_answers = 0
     total_questions = 0
 
-    async with HaikuRAG(Path(__file__).parent / "benchmark.sqlite") as rag:
+    async with HaikuRAG(db_path) as rag:
         qa = QA(rag)
 
         for i, doc in enumerate(tqdm(corpus, desc="QA Benchmarking")):
@@ -93,6 +98,10 @@ async def run_qa_benchmark():
             is_equivalent = await judge.judge_answers(
                 question, generated_answer, expected_answer
             )
+            print(f"Question: {question}")
+            print(f"Expected: {expected_answer}")
+            print(f"Generated: {generated_answer}")
+            print(f"Equivalent: {is_equivalent}\n")
 
             if is_equivalent:
                 correct_answers += 1

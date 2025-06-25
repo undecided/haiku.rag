@@ -4,6 +4,8 @@ from haiku.rag.client import HaikuRAG
 from haiku.rag.config import Config
 from haiku.rag.qa.base import QABase
 
+OLLAMA_OPTIONS = {"temperature": 0.0, "seed": 42, "num_ctx": 64000}
+
 
 class QA(QABase):
     def __init__(self, client: HaikuRAG, model: str = Config.QA_MODEL):
@@ -48,7 +50,7 @@ class QA(QABase):
             model=self._model,
             messages=messages,
             tools=tools,
-            options={"temperature": 0.0, "seed": 42},
+            options=OLLAMA_OPTIONS,
             think=False,
         )
 
@@ -82,7 +84,7 @@ class QA(QABase):
                 model=self._model,
                 messages=messages,
                 think=False,
-                options={"temperature": 0.0, "seed": 42},
+                options=OLLAMA_OPTIONS,
             )
             return final_response["message"]["content"]
         else:
