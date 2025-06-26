@@ -8,13 +8,15 @@ Set directories to monitor for automatic indexing:
 
 ```bash
 # Monitor single directory
-export MONITOR_DIRECTORIES="/path/to/documents"
+MONITOR_DIRECTORIES="/path/to/documents"
 
 # Monitor multiple directories
-export MONITOR_DIRECTORIES="/path/to/documents,/another_path/to/documents"
+MONITOR_DIRECTORIES="/path/to/documents,/another_path/to/documents"
 ```
 
 ## Embedding Providers
+
+If you use Ollama, you can use any pulled model that supports embeddings.
 
 ### Ollama (Default)
 
@@ -25,6 +27,11 @@ EMBEDDINGS_VECTOR_DIM=1024
 ```
 
 ### VoyageAI
+If you want to use VoyageAI embeddings you will need to install `haiku.rag` with the VoyageAI extras,
+
+```bash
+uv pip install haiku.rag --extra voyageai
+```
 
 ```bash
 EMBEDDINGS_PROVIDER="voyageai"
@@ -34,6 +41,13 @@ VOYAGE_API_KEY="your-api-key"
 ```
 
 ### OpenAI
+If you want to use OpenAI embeddings you will need to install `haiku.rag` with the VoyageAI extras,
+
+```bash
+uv pip install haiku.rag --extra openai
+```
+
+and set environment variables.
 
 ```bash
 EMBEDDINGS_PROVIDER="openai"
