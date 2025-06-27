@@ -1,6 +1,6 @@
 # Configuration
 
-Configuration is done through environment variables.
+Configuration is done through the use of environment variables.
 
 ## File Monitoring
 

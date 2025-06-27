@@ -2,6 +2,8 @@
 
 Retrieval-Augmented Generation (RAG) library on SQLite.
 
+`haiku.rag` is a Retrieval-Augmented Generation (RAG) library built to work on SQLite alone without the need for external vector databases. It uses [sqlite-vec](https://github.com/asg017/sqlite-vec) for storing the embeddings and performs semantic (vector) search as well as full-text search combined through Reciprocal Rank Fusion. Both open-source (Ollama) as well as commercial (OpenAI, VoyageAI) embedding providers are supported.
+
 ## Features
 
 - **Local SQLite**: No external servers required

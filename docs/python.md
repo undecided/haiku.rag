@@ -92,10 +92,3 @@ for chunk, relevance_score in results:
     print(f"Content: {chunk.content}")
     print(f"From document: {chunk.document_id}")
 ```
-
-## Search Technology
-
-`haiku.rag` uses hybrid search combining:
-- **Vector search** using `sqlite-vec` for semantic similarity
-- **Full-text search** using SQLite's `FTS5` for keyword matching
-- **Reciprocal Rank Fusion** to combine and rank results

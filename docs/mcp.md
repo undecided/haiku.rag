@@ -1,6 +1,6 @@
 # Model Context Protocol (MCP)
 
-The MCP server exposes RAG functionality as tools for AI assistants like Claude Desktop.
+The MCP server exposes `haiku.rag` as MCP tools for compatible MCP clients.
 
 ## Available Tools
 
@@ -19,7 +19,7 @@ The MCP server exposes RAG functionality as tools for AI assistants like Claude 
 
 ## Starting MCP Server
 
-The MCP server starts automatically with the serve command:
+The MCP server starts automatically with the serve command and supports `Streamable HTTP`, `stdio` and `SSE` transports:
 
 ```bash
 # Default HTTP transport
@@ -31,10 +31,3 @@ haiku-rag serve --stdio
 # SSE transport
 haiku-rag serve --sse
 ```
-
-## Integration
-
-The MCP server follows the Model Context Protocol specification, making it compatible with:
-- Claude Desktop
-- Other MCP-compatible AI assistants
-- Custom MCP clients
