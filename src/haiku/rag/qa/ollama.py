@@ -2,12 +2,12 @@ from ollama import AsyncClient
 
 from haiku.rag.client import HaikuRAG
 from haiku.rag.config import Config
-from haiku.rag.qa.base import QABase
+from haiku.rag.qa.base import QuestionAnswerAgentBase
 
 OLLAMA_OPTIONS = {"temperature": 0.0, "seed": 42, "num_ctx": 64000}
 
 
-class QA(QABase):
+class QuestionAnswerOllamaAgent(QuestionAnswerAgentBase):
     def __init__(self, client: HaikuRAG, model: str = Config.QA_MODEL):
         super().__init__(client, model or self._model)
 
@@ -15,30 +15,6 @@ class QA(QABase):
         ollama_client = AsyncClient(host=Config.OLLAMA_BASE_URL)
 
         # Define the search tool
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "search_documents",
-                    "description": "Search the knowledge base for relevant documents",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query to find relevant documents",
-                            },
-                            "limit": {
-                                "type": "integer",
-                                "description": "Maximum number of results to return",
-                                "default": 3,
-                            },
-                        },
-                        "required": ["query"],
-                    },
-                },
-            }
-        ]
 
         messages = [
             {"role": "system", "content": self._system_prompt},
@@ -49,7 +25,7 @@ class QA(QABase):
         response = await ollama_client.chat(
             model=self._model,
             messages=messages,
-            tools=tools,
+            tools=self.tools,
             options=OLLAMA_OPTIONS,
             think=False,
         )

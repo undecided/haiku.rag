@@ -3,8 +3,6 @@ from pathlib import Path
 import pytest
 from datasets import Dataset, load_dataset, load_from_disk
 
-from .llm_judge import LLMJudge
-
 
 @pytest.fixture(scope="session")
 def qa_corpus() -> Dataset:
@@ -18,8 +16,3 @@ def qa_corpus() -> Dataset:
         corpus = ds.filter(lambda doc: doc["document_topic"] == "News Stories")
         corpus.save_to_disk(ds_path)
         return corpus
-
-
-@pytest.fixture(scope="session")
-def llm_judge() -> LLMJudge:
-    return LLMJudge()

@@ -27,6 +27,10 @@ class AppConfig(BaseModel):
 
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
+    # Provider keys
+    VOYAGE_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
+
     @field_validator("MONITOR_DIRECTORIES", mode="before")
     @classmethod
     def parse_monitor_directories(cls, v):
@@ -41,3 +45,7 @@ class AppConfig(BaseModel):
 
 # Expose Config object for app to import
 Config = AppConfig.model_validate(os.environ)
+if Config.OPENAI_API_KEY:
+    os.environ["OPENAI_API_KEY"] = Config.OPENAI_API_KEY
+if Config.VOYAGE_API_KEY:
+    os.environ["VOYAGE_API_KEY"] = Config.VOYAGE_API_KEY
