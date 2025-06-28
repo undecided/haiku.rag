@@ -9,6 +9,7 @@ Retrieval-Augmented Generation (RAG) library on SQLite.
 - **Local SQLite**: No external servers required
 - **Multiple embedding providers**: Ollama, VoyageAI, OpenAI
 - **Hybrid search**: Vector + full-text search with Reciprocal Rank Fusion
+- **Question answering**: Built-in QA agents on your documents
 - **File monitoring**: Auto-index files when run as server
 - **40+ file formats**: PDF, DOCX, HTML, Markdown, audio, URLs
 - **MCP server**: Expose as tools for AI assistants
@@ -26,6 +27,9 @@ haiku-rag add-src document.pdf
 
 # Search
 haiku-rag search "query"
+
+# Ask questions
+haiku-rag ask "Who is the author of haiku.rag?"
 
 # Start server with file monitoring
 export MONITOR_DIRECTORIES="/path/to/docs"
@@ -45,6 +49,10 @@ async with HaikuRAG("database.db") as client:
     results = await client.search("query")
     for chunk, score in results:
         print(f"{score:.3f}: {chunk.content}")
+
+    # Ask questions
+    answer = await client.ask("Who is the author of haiku.rag?")
+    print(answer)
 ```
 
 ## MCP Server
