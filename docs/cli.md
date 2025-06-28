@@ -47,6 +47,15 @@ With options:
 haiku-rag search "python programming" --limit 10 --k 100
 ```
 
+## Question Answering
+
+Ask questions about your documents:
+```bash
+haiku-rag ask "Who is the author of haiku.rag?"
+```
+
+The QA agent will search your documents for relevant information and provide a comprehensive answer.
+
 ## Server
 
 Start the MCP server:

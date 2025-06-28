@@ -61,6 +61,17 @@ class HaikuRAGApp:
             for chunk, score in results:
                 self._rich_print_search_result(chunk, score)
 
+    async def ask(self, question: str):
+        async with HaikuRAG(db_path=self.db_path) as self.client:
+            try:
+                answer = await self.client.ask(question)
+                self.console.print(f"[bold blue]Question:[/bold blue] {question}")
+                self.console.print()
+                self.console.print("[bold green]Answer:[/bold green]")
+                self.console.print(Markdown(answer))
+            except Exception as e:
+                self.console.print(f"[red]Error: {e}[/red]")
+
     def _rich_print_document(self, doc: Document, truncate: bool = False):
         """Format a document for display."""
         if truncate:

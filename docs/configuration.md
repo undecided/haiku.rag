@@ -55,3 +55,50 @@ EMBEDDINGS_MODEL="text-embedding-3-small"  # or text-embedding-3-large
 EMBEDDINGS_VECTOR_DIM=1536
 OPENAI_API_KEY="your-api-key"
 ```
+
+## Question Answering Providers
+
+Configure which LLM provider to use for question answering.
+
+### Ollama (Default)
+
+```bash
+QA_PROVIDER="ollama"
+QA_MODEL="qwen3"
+OLLAMA_BASE_URL="http://localhost:11434"
+```
+
+### OpenAI
+
+For OpenAI QA, you need to install haiku.rag with OpenAI extras:
+
+```bash
+uv pip install haiku.rag --extra openai
+```
+
+Then configure:
+
+```bash
+QA_PROVIDER="openai"
+QA_MODEL="gpt-4o-mini"  # or gpt-4, gpt-3.5-turbo, etc.
+OPENAI_API_KEY="your-api-key"
+```
+
+## Other Settings
+
+### Database and Storage
+
+```bash
+# Default data directory (where SQLite database is stored)
+DEFAULT_DATA_DIR="/path/to/data"
+```
+
+### Document Processing
+
+```bash
+# Chunk size for document processing
+CHUNK_SIZE=256
+
+# Chunk overlap for better context
+CHUNK_OVERLAP=32
+```

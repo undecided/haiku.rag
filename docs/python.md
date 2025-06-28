@@ -91,4 +91,19 @@ for chunk, relevance_score in results:
     print(f"Relevance: {relevance_score:.3f}")
     print(f"Content: {chunk.content}")
     print(f"From document: {chunk.document_id}")
+    print(f"Document URI: {chunk.document_uri}")
+    print(f"Document metadata: {chunk.document_meta}")
 ```
+
+## Question Answering
+
+Ask questions about your documents:
+
+```python
+answer = await client.ask("Who is the author of haiku.rag?")
+print(answer)
+```
+
+The QA agent will search your documents for relevant information and use the configured LLM to generate a comprehensive answer.
+
+The QA provider and model can be configured via environment variables (see [Configuration](configuration.md)).

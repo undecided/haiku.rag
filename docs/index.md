@@ -8,6 +8,7 @@
 - **Local SQLite**: No need to run additional servers
 - **Support for various embedding providers**: Ollama, VoyageAI, OpenAI or add your own
 - **Hybrid Search**: Vector search using `sqlite-vec` combined with full-text search `FTS5`, using Reciprocal Rank Fusion
+- **Question Answering**: Built-in QA agents using Ollama or OpenAI.
 - **File monitoring**: Automatically index files when run as a server
 - **Extended file format support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a URL!
 - **MCP server**: Exposes functionality as MCP tools
@@ -31,12 +32,16 @@ async with HaikuRAG("database.db") as client:
 
     # Search documents
     results = await client.search("query")
+
+    # Ask questions
+    answer = await client.ask("Who is the author of haiku.rag?")
 ```
 
 Or use the CLI:
 ```bash
 haiku-rag add "Your document content"
 haiku-rag search "query"
+haiku-rag ask "Who is the author of haiku.rag?"
 ```
 
 ## Documentation
@@ -44,6 +49,7 @@ haiku-rag search "query"
 - [Installation](installation.md) - Install haiku.rag with different providers
 - [Configuration](configuration.md) - Environment variables and settings
 - [CLI](cli.md) - Command line interface usage
+- [Question Answering](qa.md) - QA agents and natural language queries
 - [Server](server.md) - File monitoring and server mode
 - [MCP](mcp.md) - Model Context Protocol integration
 - [Python](python.md) - Python API reference

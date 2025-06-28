@@ -36,7 +36,7 @@ class HaikuRAG:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):  # noqa: ARG002
         """Async context manager exit."""
         self.close()
         return False
@@ -255,6 +255,20 @@ class HaikuRAG:
             List of (chunk, score) tuples ordered by relevance
         """
         return await self.chunk_repository.search_chunks_hybrid(query, limit, k)
+
+    async def ask(self, question: str) -> str:
+        """Ask a question using the configured QA agent.
+
+        Args:
+            question: The question to ask
+
+        Returns:
+            The generated answer as a string
+        """
+        from haiku.rag.qa import get_qa_agent
+
+        qa_agent = get_qa_agent(self)
+        return await qa_agent.answer(question)
 
     def close(self):
         """Close the underlying store connection."""
