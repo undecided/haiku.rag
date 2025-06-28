@@ -113,6 +113,21 @@ def search(
     event_loop.run_until_complete(app.search(query=query, limit=limit, k=k))
 
 
+@cli.command("ask", help="Ask a question using the QA agent")
+def ask(
+    question: str = typer.Argument(
+        help="The question to ask",
+    ),
+    db: Path = typer.Option(
+        get_default_data_dir() / "haiku.rag.sqlite",
+        "--db",
+        help="Path to the SQLite database file",
+    ),
+):
+    app = HaikuRAGApp(db_path=db)
+    event_loop.run_until_complete(app.ask(question=question))
+
+
 @cli.command(
     "serve", help="Start the haiku.rag MCP server (by default in streamable HTTP mode)"
 )
