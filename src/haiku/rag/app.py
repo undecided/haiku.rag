@@ -99,6 +99,12 @@ class HaikuRAGApp:
             f"[repr.attrib_name]document_id[/repr.attrib_name]: {chunk.document_id} "
             f"[repr.attrib_name]score[/repr.attrib_name]: {score:.4f}"
         )
+        if chunk.document_uri:
+            self.console.print("[repr.attrib_name]document uri[/repr.attrib_name]:")
+            self.console.print(chunk.document_uri)
+        if chunk.document_meta:
+            self.console.print("[repr.attrib_name]document meta[/repr.attrib_name]:")
+            self.console.print(chunk.document_meta)
         self.console.print("[repr.attrib_name]content[/repr.attrib_name]:")
         self.console.print(content)
         self.console.rule()
