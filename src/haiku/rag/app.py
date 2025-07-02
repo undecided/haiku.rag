@@ -97,6 +97,26 @@ class HaikuRAGApp:
             except Exception as e:
                 self.console.print(f"[red]Error rebuilding database: {e}[/red]")
 
+    def show_settings(self):
+        """Display current configuration settings."""
+        self.console.print("[bold]haiku.rag configuration[/bold]")
+        self.console.print()
+
+        # Get all config fields dynamically
+        for field_name, field_value in Config.model_dump().items():
+            # Format the display value
+            if isinstance(field_value, str) and (
+                "key" in field_name.lower()
+                or "password" in field_name.lower()
+                or "token" in field_name.lower()
+            ):
+                # Hide sensitive values but show if they're set
+                display_value = "✓ Set" if field_value else "✗ Not set"
+            else:
+                display_value = field_value
+
+            self.console.print(f"  [cyan]{field_name}[/cyan]: {display_value}")
+
     def _rich_print_document(self, doc: Document, truncate: bool = False):
         """Format a document for display."""
         if truncate:

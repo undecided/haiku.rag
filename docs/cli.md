@@ -66,6 +66,13 @@ haiku-rag ask "Who is the author of haiku.rag?"
 
 The QA agent will search your documents for relevant information and provide a comprehensive answer.
 
+## Configuration
+
+View current configuration settings:
+```bash
+haiku-rag settings
+```
+
 ## Server
 
 Start the MCP server:
