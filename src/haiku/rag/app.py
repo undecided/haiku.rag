@@ -72,6 +72,14 @@ class HaikuRAGApp:
             except Exception as e:
                 self.console.print(f"[red]Error: {e}[/red]")
 
+    async def rebuild(self):
+        async with HaikuRAG(db_path=self.db_path) as client:
+            try:
+                await client.rebuild_database()
+                self.console.print("[b]Database rebuild completed successfully.[/b]")
+            except Exception as e:
+                self.console.print(f"[red]Error rebuilding database: {e}[/red]")
+
     def _rich_print_document(self, doc: Document, truncate: bool = False):
         """Format a document for display."""
         if truncate:

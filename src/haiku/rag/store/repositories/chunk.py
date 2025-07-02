@@ -208,6 +208,22 @@ class ChunkRepository(BaseRepository[Chunk]):
 
         return created_chunks
 
+    async def delete_all(self, commit: bool = True) -> bool:
+        """Delete all chunks from the database."""
+        if self.store._connection is None:
+            raise ValueError("Store connection is not available")
+
+        cursor = self.store._connection.cursor()
+
+        cursor.execute("DELETE FROM chunks_fts")
+        cursor.execute("DELETE FROM chunk_embeddings")
+        cursor.execute("DELETE FROM chunks")
+
+        deleted = cursor.rowcount > 0
+        if commit:
+            self.store._connection.commit()
+        return deleted
+
     async def delete_by_document_id(
         self, document_id: int, commit: bool = True
     ) -> bool:
