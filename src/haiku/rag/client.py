@@ -1,6 +1,7 @@
 import hashlib
 import mimetypes
 import tempfile
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
@@ -270,8 +271,12 @@ class HaikuRAG:
         qa_agent = get_qa_agent(self)
         return await qa_agent.answer(question)
 
-    async def rebuild_database(self) -> None:
-        """Rebuild the database by deleting all chunks and re-indexing all documents."""
+    async def rebuild_database(self) -> AsyncGenerator[int, None]:
+        """Rebuild the database by deleting all chunks and re-indexing all documents.
+
+        Yields:
+            int: The ID of the document currently being processed
+        """
         documents = await self.list_documents()
 
         if not documents:
@@ -284,6 +289,7 @@ class HaikuRAG:
                 await self.chunk_repository.create_chunks_for_document(
                     doc.id, doc.content, commit=False
                 )
+                yield doc.id
 
         if self.store._connection:
             self.store._connection.commit()

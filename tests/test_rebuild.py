@@ -29,7 +29,13 @@ async def test_rebuild_database(qa_corpus: Dataset):
     assert len(chunks_before) > 0
 
     # Perform rebuild
-    await client.rebuild_database()
+    processed_doc_ids = []
+    async for doc_id in client.rebuild_database():
+        processed_doc_ids.append(doc_id)
+
+    # Verify all documents were processed
+    expected_doc_ids = [doc.id for doc in created_docs]
+    assert set(processed_doc_ids) == set(expected_doc_ids)
 
     documents_after = await client.list_documents()
     assert len(documents_after) == 3
