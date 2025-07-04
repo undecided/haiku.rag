@@ -3,6 +3,7 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.progress import Progress
 
 from haiku.rag.client import HaikuRAG
 from haiku.rag.config import Config
@@ -71,6 +72,30 @@ class HaikuRAGApp:
                 self.console.print(Markdown(answer))
             except Exception as e:
                 self.console.print(f"[red]Error: {e}[/red]")
+
+    async def rebuild(self):
+        async with HaikuRAG(db_path=self.db_path) as client:
+            try:
+                documents = await client.list_documents()
+                total_docs = len(documents)
+
+                if total_docs == 0:
+                    self.console.print(
+                        "[yellow]No documents found in database.[/yellow]"
+                    )
+                    return
+
+                self.console.print(
+                    f"[b]Rebuilding database with {total_docs} documents...[/b]"
+                )
+                with Progress() as progress:
+                    task = progress.add_task("Rebuilding...", total=total_docs)
+                    async for _ in client.rebuild_database():
+                        progress.update(task, advance=1)
+
+                self.console.print("[b]Database rebuild completed successfully.[/b]")
+            except Exception as e:
+                self.console.print(f"[red]Error rebuilding database: {e}[/red]")
 
     def _rich_print_document(self, doc: Document, truncate: bool = False):
         """Format a document for display."""

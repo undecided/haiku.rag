@@ -35,6 +35,16 @@ haiku-rag get 1
 haiku-rag delete 1
 ```
 
+### Rebuild Database
+
+Rebuild the database by deleting all chunks & embeddings and re-indexing all documents:
+
+```bash
+haiku-rag rebuild
+```
+
+Use this when you want to change things like the embedding model or chunk size for example.
+
 ## Search
 
 Basic search:

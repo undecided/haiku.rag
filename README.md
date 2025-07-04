@@ -31,6 +31,9 @@ haiku-rag search "query"
 # Ask questions
 haiku-rag ask "Who is the author of haiku.rag?"
 
+# Rebuild database (re-chunk and re-embed all documents)
+haiku-rag rebuild
+
 # Start server with file monitoring
 export MONITOR_DIRECTORIES="/path/to/docs"
 haiku-rag serve

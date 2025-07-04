@@ -129,6 +129,21 @@ def ask(
 
 
 @cli.command(
+    "rebuild",
+    help="Rebuild the database by deleting all chunks and re-indexing all documents",
+)
+def rebuild(
+    db: Path = typer.Option(
+        get_default_data_dir() / "haiku.rag.sqlite",
+        "--db",
+        help="Path to the SQLite database file",
+    ),
+):
+    app = HaikuRAGApp(db_path=db)
+    event_loop.run_until_complete(app.rebuild())
+
+
+@cli.command(
     "serve", help="Start the haiku.rag MCP server (by default in streamable HTTP mode)"
 )
 def serve(

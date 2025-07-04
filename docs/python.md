@@ -67,6 +67,13 @@ await client.update_document(doc)
 await client.delete_document(doc.id)
 ```
 
+### Rebuilding the Database
+
+```python
+async for doc_id in client.rebuild_database():
+    print(f"Processed document {doc_id}")
+```
+
 ## Searching Documents
 
 Basic search:
