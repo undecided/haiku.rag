@@ -8,6 +8,7 @@ Retrieval-Augmented Generation (RAG) library on SQLite.
 
 - **Local SQLite**: No external servers required
 - **Multiple embedding providers**: Ollama, VoyageAI, OpenAI
+- **Multiple QA providers**: Ollama, OpenAI, Anthropic
 - **Hybrid search**: Vector + full-text search with Reciprocal Rank Fusion
 - **Question answering**: Built-in QA agents on your documents
 - **File monitoring**: Auto-index files when run as server
