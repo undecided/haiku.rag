@@ -38,6 +38,7 @@ dependencies = [
 [project.optional-dependencies]
 voyageai = ["voyageai>=0.3.2"]
 openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.56.0"]
 
 [project.scripts]
 haiku-rag = "haiku.rag.cli:cli"
