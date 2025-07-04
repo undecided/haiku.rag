@@ -8,7 +8,6 @@ def get_qa_agent(client: HaikuRAG, model: str = "") -> QuestionAnswerAgentBase:
     """
     Factory function to get the appropriate QA agent based on the configuration.
     """
-
     if Config.QA_PROVIDER == "ollama":
         return QuestionAnswerOllamaAgent(client, model or Config.QA_MODEL)
 
@@ -21,7 +20,7 @@ def get_qa_agent(client: HaikuRAG, model: str = "") -> QuestionAnswerAgentBase:
                 "Please install haiku.rag with the 'openai' extra:"
                 "uv pip install haiku.rag --extra openai"
             )
-        return QuestionAnswerOpenAIAgent(client, model or "gpt-4o-mini")
+        return QuestionAnswerOpenAIAgent(client, model or Config.QA_MODEL)
 
     if Config.QA_PROVIDER == "anthropic":
         try:
@@ -32,8 +31,6 @@ def get_qa_agent(client: HaikuRAG, model: str = "") -> QuestionAnswerAgentBase:
                 "Please install haiku.rag with the 'anthropic' extra:"
                 "uv pip install haiku.rag --extra anthropic"
             )
-        return QuestionAnswerAnthropicAgent(
-            client, model or "claude-3-5-haiku-20241022"
-        )
+        return QuestionAnswerAnthropicAgent(client, model or Config.QA_MODEL)
 
     raise ValueError(f"Unsupported QA provider: {Config.QA_PROVIDER}")

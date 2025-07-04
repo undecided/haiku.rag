@@ -6,7 +6,7 @@ from llm_judge import LLMJudge
 from tqdm import tqdm
 
 from haiku.rag.client import HaikuRAG
-from haiku.rag.qa.ollama import QuestionAnswerOllamaAgent
+from haiku.rag.qa import get_qa_agent
 
 db_path = Path(__file__).parent / "data" / "benchmark.sqlite"
 
@@ -88,7 +88,7 @@ async def run_qa_benchmark(k: int | None = None):
     total_questions = 0
 
     async with HaikuRAG(db_path) as rag:
-        qa = QuestionAnswerOllamaAgent(rag)
+        qa = get_qa_agent(rag)
 
         for i, doc in enumerate(tqdm(corpus, desc="QA Benchmarking")):
             question = doc["question"]  # type: ignore
