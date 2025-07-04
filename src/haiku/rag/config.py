@@ -30,6 +30,7 @@ class AppConfig(BaseModel):
     # Provider keys
     VOYAGE_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
 
     @field_validator("MONITOR_DIRECTORIES", mode="before")
     @classmethod
@@ -49,3 +50,5 @@ if Config.OPENAI_API_KEY:
     os.environ["OPENAI_API_KEY"] = Config.OPENAI_API_KEY
 if Config.VOYAGE_API_KEY:
     os.environ["VOYAGE_API_KEY"] = Config.VOYAGE_API_KEY
+if Config.ANTHROPIC_API_KEY:
+    os.environ["ANTHROPIC_API_KEY"] = Config.ANTHROPIC_API_KEY

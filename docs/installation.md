@@ -24,6 +24,12 @@ uv pip install haiku.rag --extra voyageai
 uv pip install haiku.rag --extra openai
 ```
 
+### Anthropic
+
+```bash
+uv pip install haiku.rag --extra anthropic
+```
+
 ## Requirements
 
 - Python 3.10+

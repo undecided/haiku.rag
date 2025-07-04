@@ -8,7 +8,7 @@
 - **Local SQLite**: No need to run additional servers
 - **Support for various embedding providers**: Ollama, VoyageAI, OpenAI or add your own
 - **Hybrid Search**: Vector search using `sqlite-vec` combined with full-text search `FTS5`, using Reciprocal Rank Fusion
-- **Question Answering**: Built-in QA agents using Ollama or OpenAI.
+- **Question Answering**: Built-in QA agents using Ollama, OpenAI, or Anthropic.
 - **File monitoring**: Automatically index files when run as a server
 - **Extended file format support**: Parse 40+ file formats including PDF, DOCX, HTML, Markdown, audio and more. Or add a URL!
 - **MCP server**: Exposes functionality as MCP tools

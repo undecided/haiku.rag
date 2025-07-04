@@ -84,6 +84,22 @@ QA_MODEL="gpt-4o-mini"  # or gpt-4, gpt-3.5-turbo, etc.
 OPENAI_API_KEY="your-api-key"
 ```
 
+### Anthropic
+
+For Anthropic QA, you need to install haiku.rag with Anthropic extras:
+
+```bash
+uv pip install haiku.rag --extra anthropic
+```
+
+Then configure:
+
+```bash
+QA_PROVIDER="anthropic"
+QA_MODEL="claude-3-5-haiku-20241022"  # or claude-3-5-sonnet-20241022, etc.
+ANTHROPIC_API_KEY="your-api-key"
+```
+
 ## Other Settings
 
 ### Database and Storage

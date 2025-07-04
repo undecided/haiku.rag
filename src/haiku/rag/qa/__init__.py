@@ -23,4 +23,17 @@ def get_qa_agent(client: HaikuRAG, model: str = "") -> QuestionAnswerAgentBase:
             )
         return QuestionAnswerOpenAIAgent(client, model or "gpt-4o-mini")
 
+    if Config.QA_PROVIDER == "anthropic":
+        try:
+            from haiku.rag.qa.anthropic import QuestionAnswerAnthropicAgent
+        except ImportError:
+            raise ImportError(
+                "Anthropic QA agent requires the 'anthropic' package. "
+                "Please install haiku.rag with the 'anthropic' extra:"
+                "uv pip install haiku.rag --extra anthropic"
+            )
+        return QuestionAnswerAnthropicAgent(
+            client, model or "claude-3-5-haiku-20241022"
+        )
+
     raise ValueError(f"Unsupported QA provider: {Config.QA_PROVIDER}")
