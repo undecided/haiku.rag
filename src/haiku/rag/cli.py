@@ -128,6 +128,12 @@ def ask(
     event_loop.run_until_complete(app.ask(question=question))
 
 
+@cli.command("settings", help="Display current configuration settings")
+def settings():
+    app = HaikuRAGApp(db_path=Path())  # Don't need actual DB for settings
+    app.show_settings()
+
+
 @cli.command(
     "rebuild",
     help="Rebuild the database by deleting all chunks and re-indexing all documents",
