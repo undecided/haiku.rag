@@ -106,6 +106,7 @@ async def run_qa_benchmark(k: int | None = None):
             if is_equivalent:
                 correct_answers += 1
             total_questions += 1
+            print("Current score:", correct_answers, "/", total_questions)
 
     accuracy = correct_answers / total_questions if total_questions > 0 else 0
 

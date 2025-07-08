@@ -63,6 +63,7 @@ nav:
       - Server: server.md
       - MCP: mcp.md
       - Python: python.md
+      - Benchmarks: benchmarks.md
 markdown_extensions:
   - admonition
   - attr_list

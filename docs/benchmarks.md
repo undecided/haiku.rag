@@ -1,13 +1,27 @@
-# `haiku.rag` benchmarks
+# Benchmarks
 
-We use [repliqa](https://huggingface.co/datasets/ServiceNow/repliqa) for the evaluation of `haiku.rag`
+We use the [repliqa](https://huggingface.co/datasets/ServiceNow/repliqa) dataset for the evaluation of `haiku.rag`.
 
-* Recall
+You can perform your own evaluations using as example the script found at
+`tests/generate_benchmark_db.py`.
 
-We load the `News Stories` from `repliqa_3` which is 1035 documents, using `tests/generate_benchmark_db.py`, using the `mxbai-embed-large` Ollama embeddings.
+## Recall
 
-Subsequently, we run a search over the `question` for each row of the dataset and check whether we match the document that answers the question. The recall obtained is ~0.75 for matching in the top result, raising to ~0.75 for the top 3 results.
+In order to calculate recall, we load the `News Stories` from `repliqa_3` which is 1035 documents and index them in a sqlite db. Subsequently, we run a search over the `question` field for each row of the dataset and check whether we match the document that answers the question.
 
-* Question/Answer evaluation
 
-We use the  `News Stories` from `repliqa_3` using the `mxbai-embed-large` Ollama embeddings, with a QA agent also using Ollama with the `qwen3` model (8b). For each story we ask the `question` and use an LLM judge (also `qwen3`) to evaluate whether the answer is correct or not. Thus we obtain accuracy of ~0.54.
+The recall obtained is ~0.73 for matching in the top result, raising to ~0.75 for the top 3 results.
+
+| Model                                 | Document in top 1 | Document in top 3 |
+|---------------------------------------|-------------------|-------------------|
+| Ollama / `mxbai-embed-large`          | 0.73              | 0.75              |
+| OpenAI / `text-embeddings-3-small`    |                   |                   |
+
+## Question/Answer evaluation
+
+Again using the same dataset, we use a QA agent to answer the question. In addition we use an LLM judge (using the Ollama `qwen3`) to evaluate whether the answer is correct or not. The obtained accuracy is as follows:
+
+| Embedding Model              | QA Model                          | Accuracy  |
+|------------------------------|-----------------------------------|-----------|
+| Ollama / `mxbai-embed-large` | Ollama / `qwen3`                  | 0.64      |
+| Ollama / `mxbai-embed-large` | Anthropic / `Claude Sonnet 3.7`   | 0.79      |
