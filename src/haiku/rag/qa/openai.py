@@ -24,8 +24,6 @@ try:
         async def answer(self, question: str) -> str:
             openai_client = AsyncOpenAI()
 
-            # Define the search tool
-
             messages: list[ChatCompletionMessageParam] = [
                 ChatCompletionSystemMessageParam(
                     role="system", content=self._system_prompt
@@ -33,69 +31,70 @@ try:
                 ChatCompletionUserMessageParam(role="user", content=question),
             ]
 
-            # Initial response with tool calling
-            response = await openai_client.chat.completions.create(
-                model=self._model,
-                messages=messages,
-                tools=self.tools,
-                temperature=0.0,
-            )
+            max_rounds = 5  # Prevent infinite loops
 
-            response_message = response.choices[0].message
-
-            if response_message.tool_calls:
-                messages.append(
-                    ChatCompletionAssistantMessageParam(
-                        role="assistant",
-                        content=response_message.content,
-                        tool_calls=[
-                            {
-                                "id": tc.id,
-                                "type": "function",
-                                "function": {
-                                    "name": tc.function.name,
-                                    "arguments": tc.function.arguments,
-                                },
-                            }
-                            for tc in response_message.tool_calls
-                        ],
-                    )
-                )
-
-                for tool_call in response_message.tool_calls:
-                    if tool_call.function.name == "search_documents":
-                        import json
-
-                        args = json.loads(tool_call.function.arguments)
-                        query = args.get("query", question)
-                        limit = int(args.get("limit", 3))
-
-                        search_results = await self._client.search(query, limit=limit)
-
-                        context_chunks = []
-                        for chunk, score in search_results:
-                            context_chunks.append(
-                                f"Content: {chunk.content}\nScore: {score:.4f}"
-                            )
-
-                        context = "\n\n".join(context_chunks)
-
-                        messages.append(
-                            ChatCompletionToolMessageParam(
-                                role="tool",
-                                content=context,
-                                tool_call_id=tool_call.id,
-                            )
-                        )
-
-                final_response = await openai_client.chat.completions.create(
+            for _ in range(max_rounds):
+                response = await openai_client.chat.completions.create(
                     model=self._model,
                     messages=messages,
+                    tools=self.tools,
                     temperature=0.0,
                 )
-                return final_response.choices[0].message.content or ""
-            else:
-                return response_message.content or ""
+
+                response_message = response.choices[0].message
+
+                if response_message.tool_calls:
+                    messages.append(
+                        ChatCompletionAssistantMessageParam(
+                            role="assistant",
+                            content=response_message.content,
+                            tool_calls=[
+                                {
+                                    "id": tc.id,
+                                    "type": "function",
+                                    "function": {
+                                        "name": tc.function.name,
+                                        "arguments": tc.function.arguments,
+                                    },
+                                }
+                                for tc in response_message.tool_calls
+                            ],
+                        )
+                    )
+
+                    for tool_call in response_message.tool_calls:
+                        if tool_call.function.name == "search_documents":
+                            import json
+
+                            args = json.loads(tool_call.function.arguments)
+                            query = args.get("query", question)
+                            limit = int(args.get("limit", 3))
+
+                            search_results = await self._client.search(
+                                query, limit=limit
+                            )
+
+                            context_chunks = []
+                            for chunk, score in search_results:
+                                context_chunks.append(
+                                    f"Content: {chunk.content}\nScore: {score:.4f}"
+                                )
+
+                            context = "\n\n".join(context_chunks)
+
+                            messages.append(
+                                ChatCompletionToolMessageParam(
+                                    role="tool",
+                                    content=context,
+                                    tool_call_id=tool_call.id,
+                                )
+                            )
+                else:
+                    # No tool calls, return the response
+                    return response_message.content or ""
+
+            # If we've exhausted max rounds, return empty string
+            return ""
 
 except ImportError:
     pass
