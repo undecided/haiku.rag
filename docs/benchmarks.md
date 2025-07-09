@@ -14,7 +14,8 @@ The recall obtained is ~0.73 for matching in the top result, raising to ~0.75 fo
 
 | Model                                 | Document in top 1 | Document in top 3 |
 |---------------------------------------|-------------------|-------------------|
-| Ollama / `mxbai-embed-large`          | 0.73              | 0.75              |
+| Ollama / `mxbai-embed-large`          | 0.77              | 0.89              |
+| Ollama / `nomic-embed-text`           | 0.74              | 0.88              |
 | OpenAI / `text-embeddings-3-small`    | 0.75              | 0.88              |
 
 ## Question/Answer evaluation
