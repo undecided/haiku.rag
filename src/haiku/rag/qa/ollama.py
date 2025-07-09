@@ -14,54 +14,51 @@ class QuestionAnswerOllamaAgent(QuestionAnswerAgentBase):
     async def answer(self, question: str) -> str:
         ollama_client = AsyncClient(host=Config.OLLAMA_BASE_URL)
 
-        # Define the search tool
-
         messages = [
             {"role": "system", "content": self._system_prompt},
             {"role": "user", "content": question},
         ]
 
-        # Initial response with tool calling
-        response = await ollama_client.chat(
-            model=self._model,
-            messages=messages,
-            tools=self.tools,
-            options=OLLAMA_OPTIONS,
-            think=False,
-        )
+        max_rounds = 5  # Prevent infinite loops
 
-        if response.get("message", {}).get("tool_calls"):
-            for tool_call in response["message"]["tool_calls"]:
-                if tool_call["function"]["name"] == "search_documents":
-                    args = tool_call["function"]["arguments"]
-                    query = args.get("query", question)
-                    limit = int(args.get("limit", 3))
-
-                    search_results = await self._client.search(query, limit=limit)
-
-                    context_chunks = []
-                    for chunk, score in search_results:
-                        context_chunks.append(
-                            f"Content: {chunk.content}\nScore: {score:.4f}"
-                        )
-
-                    context = "\n\n".join(context_chunks)
-
-                    messages.append(response["message"])
-                    messages.append(
-                        {
-                            "role": "tool",
-                            "content": context,
-                            "tool_call_id": tool_call.get("id", "search_tool"),
-                        }
-                    )
-
-            final_response = await ollama_client.chat(
+        for _ in range(max_rounds):
+            response = await ollama_client.chat(
                 model=self._model,
                 messages=messages,
-                think=False,
+                tools=self.tools,
                 options=OLLAMA_OPTIONS,
+                think=False,
             )
-            return final_response["message"]["content"]
-        else:
-            return response["message"]["content"]
+
+            if response.get("message", {}).get("tool_calls"):
+                messages.append(response["message"])
+
+                for tool_call in response["message"]["tool_calls"]:
+                    if tool_call["function"]["name"] == "search_documents":
+                        args = tool_call["function"]["arguments"]
+                        query = args.get("query", question)
+                        limit = int(args.get("limit", 3))
+
+                        search_results = await self._client.search(query, limit=limit)
+
+                        context_chunks = []
+                        for chunk, score in search_results:
+                            context_chunks.append(
+                                f"Content: {chunk.content}\nScore: {score:.4f}"
+                            )
+
+                        context = "\n\n".join(context_chunks)
+
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "content": context,
+                                "tool_call_id": tool_call.get("id", "search_tool"),
+                            }
+                        )
+            else:
+                # No tool calls, return the response
+                return response["message"]["content"]
+
+        # If we've exhausted max rounds, return empty string
+        return ""

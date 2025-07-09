@@ -49,6 +49,7 @@ class LLMJudge:
         1. Do both answers provide the same answer?
         2. Do both answers directly address the question asked?
         3. Minor differences in wording or style are acceptable if the meaning of the answer is the same.
+        4. If one answer is more detailed but the other is correct, they can still be considered equivalent.
 
         Be strict but fair in your evaluation. Focus on factual correctness and whether both answers would satisfy someone asking the question."""
 
